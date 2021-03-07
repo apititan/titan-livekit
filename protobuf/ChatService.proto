@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package name.nkonev.videochat;
+
+message CheckAccessRequest {
+    int64 chatId = 1;
+    int64 userId = 2;
+}
+
+message NotifyRequest {
+    int64 usersCount = 1;
+    int64 chatId = 2;
+}
+
+message NotifyAboutKickRequest {
+    int64 chatId = 1;
+    int64 userId = 2;
+}
