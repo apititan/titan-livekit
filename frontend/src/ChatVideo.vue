@@ -191,7 +191,8 @@
 
             notifyAboutJoining() {
                 if (this.chatId) {
-                    axios.put(`/api/video/${this.chatId}/notify`).catch(error => {
+                    const streamId = this.$refs.localVideoComponent.getStreamId();
+                    axios.put(`/api/video/${this.chatId}/notify/${streamId}`).catch(error => {
                       console.log(error.response)
                     })
                 } else {

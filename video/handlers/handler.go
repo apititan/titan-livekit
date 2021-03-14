@@ -142,8 +142,12 @@ func (h *Handler) Users(w http.ResponseWriter, r *http.Request) {
 	if session, _:= h.sfu.GetSession(fmt.Sprintf("chat%v", chatId)); session != nil {
 		var usersCount int64
 		for _, peer:= range session.Peers() {
-			if h.peerIsAlive(peer) {
-				usersCount++
+			if h.peerIsAlive(peer) && peer.Publisher() != nil && peer.Publisher().GetRouter() != nil {
+				foundPeer, ok := h.connections.connectionWithData[peer]
+				if ok {
+					response.Users = append(response.Users, UserResponse{foundPeer.userId, peer.Publisher().GetRouter().ID()})
+					usersCount++
+				}
 			}
 		}
 		response.UsersCount = usersCount
@@ -158,6 +162,51 @@ func (h *Handler) Users(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			logger.Error(err, "Error during sending json")
 		}
+	}
+}
+
+func (h *Handler) User(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	chatId := vars["chatId"]
+	userId := r.Header.Get("X-Auth-UserId")
+	if ok, err := h.checkAccess(userId, chatId); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	} else if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	streamId := vars["streamId"]
+	session, _ := h.sfu.GetSession(fmt.Sprintf("chat%v", chatId))
+
+	var responsePtr *UserResponse
+	for _, peer0 := range session.Peers() {
+
+		if peer0.Publisher() != nil && peer0.Publisher().GetRouter() != nil && peer0.Publisher().GetRouter().ID() == streamId {
+			h.connections.RLock()
+			foundPeer, ok := h.connections.connectionWithData[peer0]
+			if ok {
+				responsePtr = &UserResponse{foundPeer.userId, peer0.Publisher().GetRouter().ID()}
+			}
+			defer h.connections.RUnlock()
+			break
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if responsePtr != nil {
+		marshal, err := json.Marshal(responsePtr)
+		if err != nil {
+			logger.Error(err, "Error during marshalling UsersResponse to json")
+			w.WriteHeader(http.StatusInternalServerError)
+		} else {
+			_, err := w.Write(marshal)
+			if err != nil {
+				logger.Error(err, "Error during sending json")
+			}
+		}
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+		logger.Info("Error during marshalling UsersResponse to json")
 	}
 }
 
@@ -201,6 +250,7 @@ func (h *Handler) notify(chatId string) error {
 func (h *Handler) NotifyChatParticipants(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	chatId := vars["chatId"]
+	streamId := vars["streamId"]
 	userId := r.Header.Get("X-Auth-UserId")
 	if ok, err := h.checkAccess(userId, chatId); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -244,6 +294,12 @@ func (h *Handler) Config(w http.ResponseWriter, r *http.Request) {
 
 type UsersResponse struct {
 	UsersCount int64 `json:"usersCount"`
+	Users []UserResponse `json:"users"`
+}
+
+type UserResponse struct {
+	Login string `json:"login"`
+	StreamId string `json:"streamId"`
 }
 
 func (h *Handler) Static() http.HandlerFunc {
