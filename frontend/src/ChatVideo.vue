@@ -156,15 +156,17 @@
                 this.notifyAboutLeaving();
             },
             askUserNameWithRetries(streamId) {
-                const toSend = {[FIELD_TYPE]: DATA_EVENT_GET_USERNAME_FOR, [FIELD_STREAM_ID]: streamId};
-                try {
-                    this.sendToChannel(toSend);
-                } catch (e) {
-                    setTimeout(()=>{
-                        console.log("Rescheduling asking for userName");
-                        this.askUserNameWithRetries(streamId);
-                    }, 1000);
-                }
+                // const toSend = {[FIELD_TYPE]: DATA_EVENT_GET_USERNAME_FOR, [FIELD_STREAM_ID]: streamId};
+                // try {
+                //     this.sendToChannel(toSend);
+                // } catch (e) {
+                //     setTimeout(()=>{
+                //         console.log("Rescheduling asking for userName");
+                //         this.askUserNameWithRetries(streamId);
+                //     }, 1000);
+                // }
+
+                // request-response with axios and error handling
             },
             sendToChannel(obj) {
                 const toSend = JSON.stringify(obj);
@@ -191,9 +193,16 @@
 
             notifyAboutJoining() {
                 if (this.chatId) {
-                    axios.put(`/api/video/${this.chatId}/notify`).catch(error => {
+                    const toSend = {peerId: 'peerId_uuidV4_already_used_in_join', streamId: this.$refs.localVideoComponent.getStreamId(), login: this.myUserName, videoMute: false, audioMute: false};
+                    axios.put(`/api/video/${this.chatId}/notify`, toSend).catch(error => {
                       console.log(error.response)
                     })
+                    // on backend side:
+                    // 1. find session's peers
+                    // 2. find peer with given id peerId_uuidV4_already_used_in_join
+                    // 2.1 check that it's peer user id (value from map) is equal provided user id from header
+                    // 3. by found peer as key use it's value from map and set login, video | audio mute
+                    // 4. sent notification to chat
                 } else {
                     console.warn("Unable to notify about joining")
                 }
