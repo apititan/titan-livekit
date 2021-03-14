@@ -34,3 +34,6 @@ export const VIDEO_MUTED = "videoMuted";
 export const AUDIO_START_MUTING = "audioStartMuting";
 export const AUDIO_MUTED = "audioMuted";
 export const VIDEO_COMPONENT_DESTROYED = "videoDestroyed";
+export const OPEN_VIDEO_SETTINGS_DIALOG = "openVideoSettings";
+export const VIDEO_SETTINGS_AUDIO_CHANGED = "videoSettingsAudio";
+export const VIDEO_SETTINGS_VIDEO_CHANGED = "videoSettingsVideo";

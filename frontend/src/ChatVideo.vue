@@ -12,10 +12,15 @@
         AUDIO_MUTED,
         AUDIO_START_MUTING,
         CHANGE_PHONE_BUTTON,
-        SHARE_SCREEN_START, SHARE_SCREEN_STATE_CHANGED,
+        SHARE_SCREEN_START,
+        SHARE_SCREEN_STATE_CHANGED,
         SHARE_SCREEN_STOP,
         VIDEO_COMPONENT_DESTROYED,
-        VIDEO_LOCAL_ESTABLISHED, VIDEO_MUTED, VIDEO_START_MUTING
+        VIDEO_LOCAL_ESTABLISHED,
+        VIDEO_MUTED,
+        VIDEO_SETTINGS_AUDIO_CHANGED,
+        VIDEO_SETTINGS_VIDEO_CHANGED,
+        VIDEO_START_MUTING
     } from "./bus";
     import {phoneFactory} from "./changeTitle";
     import axios from "axios";
@@ -304,7 +309,31 @@
                         bus.$emit(AUDIO_MUTED, requestedState);
                     })
                 }
-            }
+            },
+            onChangeVideoSettings(enable) {
+                this.localMedia.unpublish();
+                if (this.localMedia) {
+                    this.localMedia.getTracks().forEach(t => t.stop());
+                }
+                this.$refs.localVideoComponent.setSource(null);
+                this.localPublisherKey++;
+
+                return LocalStream.getUserMedia({
+                    resolution: "hd",
+                    audio: true,
+                    video: enable
+                }).then((media) => {
+                    this.localMedia = media
+                    this.$refs.localVideoComponent.setSource(media);
+                    this.$refs.localVideoComponent.setMuted(true);
+                    this.$refs.localVideoComponent.setUserName(this.myUserName)
+                    this.clientLocal.publish(media);
+                    bus.$emit(SHARE_SCREEN_STATE_CHANGED, false);
+                });
+            },
+            onChangeAudioSettings(enable) {
+
+            },
         },
         mounted() {
             this.closingStarted = false;
@@ -324,12 +353,16 @@
             bus.$on(SHARE_SCREEN_STOP, this.onStopScreenSharing);
             bus.$on(VIDEO_START_MUTING, this.onStartVideoMuting);
             bus.$on(AUDIO_START_MUTING, this.onStartAudioMuting);
+            bus.$on(VIDEO_SETTINGS_VIDEO_CHANGED, this.onChangeVideoSettings);
+            bus.$on(VIDEO_SETTINGS_AUDIO_CHANGED, this.onChangeAudioSettings);
         },
         destroyed() {
             bus.$off(SHARE_SCREEN_START, this.onStartScreenSharing);
             bus.$off(SHARE_SCREEN_STOP, this.onStopScreenSharing);
             bus.$off(VIDEO_START_MUTING, this.onStartVideoMuting);
             bus.$off(AUDIO_START_MUTING, this.onStartAudioMuting);
+            bus.$off(VIDEO_SETTINGS_VIDEO_CHANGED, this.onChangeVideoSettings);
+            bus.$off(VIDEO_SETTINGS_AUDIO_CHANGED, this.onChangeAudioSettings);
         },
         components: {
             UserVideo

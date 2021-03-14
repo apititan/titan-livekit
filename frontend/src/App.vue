@@ -129,6 +129,7 @@
                 <SimpleModal/>
                 <PermissionsWarning/>
                 <ChooseAvatar/>
+                <ChatVideoSettings/>
                 <router-view/>
             </v-container>
         </v-main>
@@ -150,7 +151,7 @@
         LOGGED_OUT,
         OPEN_CHAT_EDIT,
         OPEN_INFO_DIALOG,
-        OPEN_PERMISSIONS_WARNING_MODAL,
+        OPEN_PERMISSIONS_WARNING_MODAL, OPEN_VIDEO_SETTINGS_DIALOG,
         SHARE_SCREEN_START, SHARE_SCREEN_STATE_CHANGED, SHARE_SCREEN_STOP,
         VIDEO_CALL_CHANGED,
         VIDEO_CALL_INVITED, VIDEO_COMPONENT_DESTROYED, VIDEO_MUTED, VIDEO_START_MUTING,
@@ -163,6 +164,7 @@
     import {getCorrectUserAvatar} from "./utils";
     import ChatParticipants from "./ChatParticipants";
     import PermissionsWarning from "./PermissionsWarning";
+    import ChatVideoSettings from "./ChatVideoSettings";
 
     const audio = new Audio("/call.mp3");
 
@@ -175,6 +177,7 @@
                     { title: 'Mute audio', icon: 'mdi-microphone', color: 'primary', clickFunction: this.toggleMuteAudio, requireAuthenticated: true, displayCondition: this.shouldDisplayAudioMute},
                     { title: 'Unmute video', icon: 'mdi-video-off', color: 'error', clickFunction: this.toggleMuteVideo, requireAuthenticated: true, displayCondition: this.shouldDisplayVideoUnmute},
                     { title: 'Mute video', icon: 'mdi-video', color: 'primary', clickFunction: this.toggleMuteVideo, requireAuthenticated: true, displayCondition: this.shouldDisplayVideoMute},
+                    { title: 'Video settings', icon: 'mdi-cog', clickFunction: this.openVideoSettings, requireAuthenticated: true, displayCondition: this.shouldDisplayVideoSettings},
 
                     { title: 'New chat', icon: 'mdi-plus-circle-outline', clickFunction: this.createChat, requireAuthenticated: true},
                     { title: 'Chats', icon: 'mdi-home-city', clickFunction: this.goHome, requireAuthenticated: false },
@@ -208,7 +211,8 @@
             SimpleModal,
             ChooseAvatar,
             ChatParticipants,
-            PermissionsWarning
+            PermissionsWarning,
+            ChatVideoSettings,
         },
         methods:{
             toggleLeftNavigation() {
@@ -236,6 +240,9 @@
             },
             editChat() {
                 bus.$emit(OPEN_CHAT_EDIT, this.chatEditId);
+            },
+            openVideoSettings() {
+                bus.$emit(OPEN_VIDEO_SETTINGS_DIALOG);
             },
             doSearch(searchString) {
                 this.$store.dispatch(CHANGE_SEARCH_STRING, searchString);
@@ -349,6 +356,9 @@
             },
             shouldDisplayVideoMute() {
                 return !this.shareScreen && this.isVideoRoute() && !this.videoMuted;
+            },
+            shouldDisplayVideoSettings() {
+                return this.isVideoRoute();
             }
         },
         computed: {
