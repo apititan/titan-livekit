@@ -172,18 +172,27 @@
                     .get(`/api/video/${this.chatId}/config`)
                     .then(response => response.data)
             },
+            notifyWithData(dto) {
+                let videoMute = false;
+                let audioMute = false;
+                if (dto) {
+                    videoMute = dto.videoMute;
+                    audioMute = dto.audioMute;
+                }
+                const toSend = {
+                    peerId: peerId,
+                    streamId: this.$refs.localVideoComponent.getStreamId(),
+                    login: this.myUserName,
+                    videoMute: videoMute,
+                    audioMute: audioMute
+                };
+                axios.put(`/api/video/${this.chatId}/notify`, toSend).catch(error => {
+                    console.log(error.response)
+                })
+            },
             notifyAboutJoining() {
                 if (this.chatId) {
-                    const toSend = {
-                        peerId: peerId,
-                        streamId: this.$refs.localVideoComponent.getStreamId(),
-                        login: this.myUserName,
-                        videoMute: false,
-                        audioMute: false
-                    };
-                    axios.put(`/api/video/${this.chatId}/notify`, toSend).catch(error => {
-                      console.log(error.response)
-                    })
+                    this.notifyWithData();
                 } else {
                     console.warn("Unable to notify about joining")
                 }
@@ -279,9 +288,11 @@
                 if (requestedState) {
                     this.localMedia.mute("video");
                     bus.$emit(VIDEO_MUTED, requestedState);
+                    this.notifyWithData();
                 } else {
                     this.localMedia.unmute("video").then(value => {
                         bus.$emit(VIDEO_MUTED, requestedState);
+                        this.notifyWithData();
                     })
                 }
             },
@@ -289,9 +300,11 @@
                 if (requestedState) {
                     this.localMedia.mute("audio");
                     bus.$emit(AUDIO_MUTED, requestedState);
+                    this.notifyWithData({audioMute: requestedState});
                 } else {
                     this.localMedia.unmute("audio").then(value => {
                         bus.$emit(AUDIO_MUTED, requestedState);
+                        this.notifyWithData({audioMute: requestedState});
                     })
                 }
             }
