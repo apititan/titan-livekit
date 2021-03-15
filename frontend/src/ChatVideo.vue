@@ -23,15 +23,11 @@
     import { IonSFUJSONRPCSignal } from 'ion-sdk-js/lib/signal/json-rpc-impl';
     import UserVideo from "./UserVideo";
     import {getWebsocketUrlPrefix} from "./utils";
+    import { v4 as uuidv4 } from 'uuid';
+
     const ComponentClass = Vue.extend(UserVideo);
 
-    const DATA_EVENT_GET_USERNAME_FOR = "getUserName";
-    const DATA_EVENT_RESPOND_USERNAME = "respondUserName";
-
-    const FIELD_TYPE = "type";
-    const FIELD_STREAM_ID = "streamId";
-    const FIELD_FOR_STREAM_ID = "forStreamId";
-    const FIELD_USERNAME = "username";
+    const peerId = uuidv4();
 
     export default {
         data() {
@@ -88,9 +84,7 @@
                 }
 
                 this.signalLocal.onopen = () => {
-                    this.clientLocal.join(`chat${this.chatId}`).then(()=>{
-                        this.dataChannel = this.clientLocal.createDataChannel(`chat${this.chatId}`);
-                        this.dataChannel.onmessage = this.receiveFromChannel;
+                    this.clientLocal.join(`chat${this.chatId}`, peerId).then(()=>{
                         this.getAndPublishCamera()
                             .then(()=>{
                               this.notifyAboutJoining();
@@ -156,53 +150,40 @@
                 this.notifyAboutLeaving();
             },
             askUserNameWithRetries(streamId) {
-                // const toSend = {[FIELD_TYPE]: DATA_EVENT_GET_USERNAME_FOR, [FIELD_STREAM_ID]: streamId};
-                // try {
-                //     this.sendToChannel(toSend);
-                // } catch (e) {
-                //     setTimeout(()=>{
-                //         console.log("Rescheduling asking for userName");
-                //         this.askUserNameWithRetries(streamId);
-                //     }, 1000);
-                // }
-
                 // request-response with axios and error handling
-            },
-            sendToChannel(obj) {
-                const toSend = JSON.stringify(obj);
-                console.log("Sending to data channel", toSend)
-                this.dataChannel.send(toSend);
-            },
-            receiveFromChannel(m) {
-                const data = JSON.parse(m.data);
-                console.log("Received from data channel", m.data);
-                if (data[FIELD_TYPE] == DATA_EVENT_GET_USERNAME_FOR && data[FIELD_STREAM_ID] == this.$refs.localVideoComponent.getStreamId()) {
-                    this.sendToChannel({[FIELD_TYPE]: DATA_EVENT_RESPOND_USERNAME, [FIELD_USERNAME]: this.myUserName, [FIELD_FOR_STREAM_ID]: data[FIELD_STREAM_ID]});
-                } else if (data[FIELD_TYPE] == DATA_EVENT_RESPOND_USERNAME) {
-                    const component = this.streams[data[FIELD_FOR_STREAM_ID]];
-                    if (component) {
-                        component.component.setUserName(data[FIELD_USERNAME]);
+                axios.get(`/api/video/${this.chatId}/user-by-stream-id/${streamId}`)
+                .then(value => {
+                    if (value.status == 204) {
+                        console.log("Rescheduling asking for userName");
+                        setTimeout(()=>{
+                                this.askUserNameWithRetries(streamId);
+                        }, 1000);
+                    } else {
+                        const data = value.data;
+                        const component = this.streams[data.streamId];
+                        if (component) {
+                            component.component.setUserName(data.login);
+                        }
                     }
-                }
+                })
             },
             getConfig() {
                 return axios
                     .get(`/api/video/${this.chatId}/config`)
                     .then(response => response.data)
             },
-
             notifyAboutJoining() {
                 if (this.chatId) {
-                    const toSend = {peerId: 'peerId_uuidV4_already_used_in_join', streamId: this.$refs.localVideoComponent.getStreamId(), login: this.myUserName, videoMute: false, audioMute: false};
+                    const toSend = {
+                        peerId: peerId,
+                        streamId: this.$refs.localVideoComponent.getStreamId(),
+                        login: this.myUserName,
+                        videoMute: false,
+                        audioMute: false
+                    };
                     axios.put(`/api/video/${this.chatId}/notify`, toSend).catch(error => {
                       console.log(error.response)
                     })
-                    // on backend side:
-                    // 1. find session's peers
-                    // 2. find peer with given id peerId_uuidV4_already_used_in_join
-                    // 2.1 check that it's peer user id (value from map) is equal provided user id from header
-                    // 3. by found peer as key use it's value from map and set login, video | audio mute
-                    // 4. sent notification to chat
                 } else {
                     console.warn("Unable to notify about joining")
                 }
