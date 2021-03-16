@@ -160,9 +160,11 @@
                         }, 1000);
                     } else {
                         const data = value.data;
-                        const component = this.streams[data.streamId];
-                        if (component) {
-                            component.component.setUserName(data.login);
+                        if (data) {
+                            const component = this.streams[data.streamId];
+                            if (component) {
+                                component.component.setUserName(data.login);
+                            }
                         }
                     }
                 })
