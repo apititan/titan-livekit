@@ -7,15 +7,14 @@
 <script>
     import Vue from 'vue';
     import {mapGetters} from "vuex";
-    import {GET_USER} from "./store";
+    import {GET_MUTE_AUDIO, GET_MUTE_VIDEO, GET_USER, SET_MUTE_AUDIO, SET_MUTE_VIDEO} from "./store";
     import bus, {
-        AUDIO_MUTED,
         AUDIO_START_MUTING,
         CHANGE_PHONE_BUTTON,
         SHARE_SCREEN_START, SHARE_SCREEN_STATE_CHANGED,
-        SHARE_SCREEN_STOP,
+        SHARE_SCREEN_STOP, VIDEO_CALL_CHANGED,
         VIDEO_COMPONENT_DESTROYED,
-        VIDEO_LOCAL_ESTABLISHED, VIDEO_MUTED, VIDEO_START_MUTING
+        VIDEO_LOCAL_ESTABLISHED, VIDEO_START_MUTING
     } from "./bus";
     import {phoneFactory} from "./changeTitle";
     import axios from "axios";
@@ -47,7 +46,7 @@
             chatId() {
                 return this.$route.params.id
             },
-            ...mapGetters({currentUser: GET_USER}),
+            ...mapGetters({currentUser: GET_USER, videoMuted: GET_MUTE_VIDEO, audioMuted: GET_MUTE_AUDIO}),
             myUserName() {
                 return this.currentUser.login
             }
@@ -147,6 +146,9 @@
                 this.localMedia = null;
 
                 bus.$emit(VIDEO_COMPONENT_DESTROYED); // restore initial state in App.vue
+                this.$store.commit(SET_MUTE_VIDEO, false);
+                this.$store.commit(SET_MUTE_AUDIO, false);
+
                 this.notifyAboutLeaving();
             },
             askUserNameWithRetries(streamId) {
@@ -174,19 +176,13 @@
                     .get(`/api/video/${this.chatId}/config`)
                     .then(response => response.data)
             },
-            notifyWithData(dto) {
-                let videoMute = false;
-                let audioMute = false;
-                if (dto) {
-                    videoMute = dto.videoMute;
-                    audioMute = dto.audioMute;
-                }
+            notifyWithData() {
                 const toSend = {
                     peerId: peerId,
                     streamId: this.$refs.localVideoComponent.getStreamId(),
                     login: this.myUserName,
-                    videoMute: videoMute,
-                    audioMute: audioMute
+                    videoMute: this.videoMuted, // from store
+                    audioMute: this.audioMuted
                 };
                 axios.put(`/api/video/${this.chatId}/notify`, toSend).catch(error => {
                     console.log(error.response)
@@ -289,11 +285,11 @@
             onStartVideoMuting(requestedState) {
                 if (requestedState) {
                     this.localMedia.mute("video");
-                    bus.$emit(VIDEO_MUTED, requestedState);
+                    this.$store.commit(SET_MUTE_VIDEO, requestedState);
                     this.notifyWithData();
                 } else {
                     this.localMedia.unmute("video").then(value => {
-                        bus.$emit(VIDEO_MUTED, requestedState);
+                        this.$store.commit(SET_MUTE_VIDEO, requestedState);
                         this.notifyWithData();
                     })
                 }
@@ -301,15 +297,26 @@
             onStartAudioMuting(requestedState) {
                 if (requestedState) {
                     this.localMedia.mute("audio");
-                    bus.$emit(AUDIO_MUTED, requestedState);
-                    this.notifyWithData({audioMute: requestedState});
+                    this.$store.commit(SET_MUTE_AUDIO, requestedState);
+                    this.notifyWithData();
                 } else {
                     this.localMedia.unmute("audio").then(value => {
-                        bus.$emit(AUDIO_MUTED, requestedState);
-                        this.notifyWithData({audioMute: requestedState});
+                        this.$store.commit(SET_MUTE_AUDIO, requestedState);
+                        this.notifyWithData();
                     })
                 }
-            }
+            },
+            onVideoCallChanged(dto) {
+                if (dto) {
+                    const data = dto.data;
+                    if (data) {
+                        const component = this.streams[data.streamId];
+                        if (component) {
+                            component.component.setAudioMute(data.audioMute);
+                        }
+                    }
+                }
+            },
         },
         mounted() {
             this.closingStarted = false;
@@ -329,12 +336,14 @@
             bus.$on(SHARE_SCREEN_STOP, this.onStopScreenSharing);
             bus.$on(VIDEO_START_MUTING, this.onStartVideoMuting);
             bus.$on(AUDIO_START_MUTING, this.onStartAudioMuting);
+            bus.$on(VIDEO_CALL_CHANGED, this.onVideoCallChanged);
         },
         destroyed() {
             bus.$off(SHARE_SCREEN_START, this.onStartScreenSharing);
             bus.$off(SHARE_SCREEN_STOP, this.onStopScreenSharing);
             bus.$off(VIDEO_START_MUTING, this.onStartVideoMuting);
             bus.$off(AUDIO_START_MUTING, this.onStartAudioMuting);
+            bus.$on(VIDEO_CALL_CHANGED, this.onVideoCallChanged);
         },
         components: {
             UserVideo
