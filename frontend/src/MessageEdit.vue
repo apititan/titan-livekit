@@ -16,11 +16,17 @@
                     <button class="ql-clean"></button>
                 </div>
                 <div class="custom-toolbar-send">
+                    <v-switch v-if="isAdmin()"
+                              class="mr-2"
+                        v-model="sendBroadcast"
+                        :label="`Switch 1: ${sendBroadcast.toString()}`"
+                    ></v-switch>
                     <v-btn color="primary" @click="sendMessageToChat" small><v-icon color="white">mdi-send</v-icon></v-btn>
                 </div>
             </div>
-            <v-tooltip v-if="writingUsers.length" :activator="'#sendButtonContainer'" top v-model="showTooltip">
-                <span>{{writingUsers.map(v=>v.login).join(', ')}} is writing...</span>
+            <v-tooltip v-if="writingUsers.length || broadcastMessage" :activator="'#sendButtonContainer'" top v-model="showTooltip">
+                <span v-if="!broadcastMessage">{{writingUsers.map(v=>v.login).join(', ')}} is writing...</span>
+                <span v-else>{{broadcastMessage}}</span>
             </v-tooltip>
 
     </v-container>
@@ -28,7 +34,7 @@
 
 <script>
     import axios from "axios";
-    import bus, {SET_EDIT_MESSAGE, USER_TYPING} from "./bus";
+    import bus, {MESSAGE_BROADCAST, SET_EDIT_MESSAGE, USER_TYPING} from "./bus";
     import debounce from "lodash/debounce";
     import {mapGetters} from "vuex";
     import {GET_USER} from "./store";
@@ -61,7 +67,9 @@
                     },
                     placeholder: 'Press Ctrl + Enter to send, Esc to clear'
                 },
-                showTooltip: true
+                showTooltip: true,
+                sendBroadcast: false,
+                broadcastMessage: null
             }
         },
         methods: {
@@ -81,12 +89,16 @@
                 this.editMessageDto = dto;
             },
             notifyAboutTyping() {
-                axios.put(`/api/chat/`+this.chatId+'/typing')
+                if (this.sendBroadcast) {
+                    axios.put(`/api/chat/`+this.chatId+'/broadcast', {text: this.editMessageDto.text});
+                } else {
+                    axios.put(`/api/chat/` + this.chatId + '/typing');
+                }
             },
             onUserTyping(data) {
                 console.log("OnUserTyping", data);
 
-                if (this.currentUser.id == data.participantId) {
+                if (!this.sendBroadcast && this.currentUser.id == data.participantId) {
                     console.log("Skipping myself typing notifications");
                     return;
                 }
@@ -96,6 +108,22 @@
                     this.writingUsers[idx].timestamp = + new Date();
                 } else {
                     this.writingUsers.push({timestamp: +new Date(), login: data.login})
+                }
+            },
+            isAdmin() {
+                if (this.currentUser) {
+                    return this.currentUser.roles.filter(v => v == "ROLE_ADMIN").length > 0
+                } else {
+                    return false
+                }
+            },
+            onUserBroadcast(dto) {
+                console.log("onUserBroadcast", dto);
+                const stripped = dto.text;
+                if (stripped && stripped.length > 0) {
+                    this.broadcastMessage = dto.text;
+                } else {
+                    this.broadcastMessage = null;
                 }
             },
         },
@@ -109,14 +137,16 @@
                 this.writingUsers = this.writingUsers.filter(value => (value.timestamp + 1*1000) > curr);
             }, 500);
             bus.$on(USER_TYPING, this.onUserTyping);
+            bus.$on(MESSAGE_BROADCAST, this.onUserBroadcast);
         },
         beforeDestroy() {
             bus.$off(SET_EDIT_MESSAGE, this.onSetMessage);
             bus.$off(USER_TYPING, this.onUserTyping);
+            bus.$off(MESSAGE_BROADCAST, this.onUserBroadcast);
             clearInterval(timerId);
         },
         created(){
-            this.notifyAboutTyping = debounce(this.notifyAboutTyping, 500, {leading:true, trailing:false});
+            this.notifyAboutTyping = debounce(this.notifyAboutTyping, 500, {leading:true, trailing:true});
         },
         watch: {
             'editMessageDto.text': {
