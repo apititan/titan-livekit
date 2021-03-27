@@ -64,6 +64,22 @@ export default () => {
                 this.page = 0;
                 this.reloadItems();
             },
+
+            getFirstByOrder() {
+                if (this.items.length) {
+                    return this.items[0].id
+                } else {
+                    return -1
+                }
+            },
+            getLastByOrder() {
+                if (this.items.length) {
+                    return this.items[this.items.length-1].id
+                } else {
+                    return -1
+                }
+            },
+
         },
 
     }

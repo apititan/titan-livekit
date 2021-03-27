@@ -29,19 +29,19 @@
 <script>
     import axios from "axios";
     import infinityListMixin, {
-        findIndex,
-        pageSize, replaceInArray
+      findIndex,
+      pageSize, replaceInArray, replaceOrAppend
     } from "./InfinityListMixin";
     import Vue from 'vue'
     import bus, {
-        CHAT_DELETED,
-        CHAT_EDITED,
-        MESSAGE_ADD,
-        MESSAGE_DELETED,
-        MESSAGE_EDITED,
-        USER_TYPING,
-        USER_PROFILE_CHANGED,
-        LOGGED_IN, LOGGED_OUT, VIDEO_CALL_CHANGED, VIDEO_CALL_KICKED, MESSAGE_BROADCAST
+      CHAT_DELETED,
+      CHAT_EDITED,
+      MESSAGE_ADD,
+      MESSAGE_DELETED,
+      MESSAGE_EDITED,
+      USER_TYPING,
+      USER_PROFILE_CHANGED,
+      LOGGED_IN, LOGGED_OUT, VIDEO_CALL_CHANGED, VIDEO_CALL_KICKED, MESSAGE_BROADCAST, CHANGE_WEBSOCKET_STATUS
     } from "./bus";
     import MessageEdit from "./MessageEdit";
     import {chat_list_name, chat_name, videochat_name} from "./routes";
@@ -328,6 +328,24 @@
                     this.$router.push({name: chat_name});
                 }
             },
+            onChangeWsStatus(isConnected) {
+                if (isConnected) {
+                  const first = this.getFirstByOrder();
+                  const last = this.getLastByOrder();
+                  if (first != -1 && last != -1) {
+                    // should respond ~patched~ all???by chunks messages from the range and the new ones added ofter endId
+                    axios.get(`/api/chat/${this.chatId}/message/has-update`, {
+                      params: {
+                        startId: first,
+                        endId: last,
+                      },
+                    })
+                        .then(({data}) => {
+                          replaceOrAppend(this.items, data)
+                        })
+                  }
+                }
+            }
         },
         mounted() {
             this.subscribe();
@@ -352,6 +370,7 @@
             bus.$on(LOGGED_IN, this.onLoggedIn);
             bus.$on(LOGGED_OUT, this.onLoggedOut);
             bus.$on(VIDEO_CALL_KICKED, this.onVideoCallKicked);
+            bus.$on(CHANGE_WEBSOCKET_STATUS, this.onChangeWsStatus);
         },
         beforeDestroy() {
             bus.$off(MESSAGE_ADD, this.onNewMessage);
@@ -363,6 +382,7 @@
             bus.$off(LOGGED_IN, this.onLoggedIn);
             bus.$off(LOGGED_OUT, this.onLoggedOut);
             bus.$off(VIDEO_CALL_KICKED, this.onVideoCallKicked);
+            bus.$off(CHANGE_WEBSOCKET_STATUS, this.onChangeWsStatus);
 
             this.unsubscribe();
         },

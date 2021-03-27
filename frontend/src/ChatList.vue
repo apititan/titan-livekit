@@ -28,13 +28,13 @@
 
 <script>
 import bus, {
-    CHAT_ADD,
-    CHAT_EDITED,
-    CHAT_DELETED,
-    CHAT_SEARCH_CHANGED,
-    LOGGED_IN,
-    OPEN_CHAT_EDIT,
-    OPEN_SIMPLE_MODAL, UNREAD_MESSAGES_CHANGED, USER_PROFILE_CHANGED, CLOSE_SIMPLE_MODAL
+  CHAT_ADD,
+  CHAT_EDITED,
+  CHAT_DELETED,
+  CHAT_SEARCH_CHANGED,
+  LOGGED_IN,
+  OPEN_CHAT_EDIT,
+  OPEN_SIMPLE_MODAL, UNREAD_MESSAGES_CHANGED, USER_PROFILE_CHANGED, CLOSE_SIMPLE_MODAL, CHANGE_WEBSOCKET_STATUS
 } from "./bus";
     import {chat_name} from "./routes";
     import infinityListMixin, {
@@ -175,6 +175,22 @@ import {
                 });
                 this.$forceUpdate();
             },
+            onChangeWsStatus(isConnected) {
+              if (isConnected) {
+                // should respond data of pages from 0 to current
+                // same as GET '/api/chat', but responds "previous"
+                axios.get(`/api/chat/${this.chatId}/has-update`, {
+                  params: {
+                    page: this.page,
+                    size: pageSize,
+                    searchString: this.storedSearchString
+                  },
+                })
+                    .then(({data}) => {
+                      replaceOrAppend(this.items, data)
+                    })
+              }
+            }
         },
         created() {
             bus.$on(LOGGED_IN, this.reloadItems);
@@ -184,6 +200,7 @@ import {
             bus.$on(CHAT_SEARCH_CHANGED, this.searchStringChanged);
             bus.$on(UNREAD_MESSAGES_CHANGED, this.onChangeUnreadMessages);
             bus.$on(USER_PROFILE_CHANGED, this.onUserProfileChanged);
+            bus.$on(CHANGE_WEBSOCKET_STATUS, this.onChangeWsStatus);
         },
         destroyed() {
             bus.$off(LOGGED_IN, this.reloadItems);
@@ -193,6 +210,7 @@ import {
             bus.$off(CHAT_SEARCH_CHANGED, this.searchStringChanged);
             bus.$off(UNREAD_MESSAGES_CHANGED, this.onChangeUnreadMessages);
             bus.$off(USER_PROFILE_CHANGED, this.onUserProfileChanged);
+            bus.$off(CHANGE_WEBSOCKET_STATUS, this.onChangeWsStatus);
         },
         mounted() {
             this.$store.commit(SET_TITLE, "Chats");
