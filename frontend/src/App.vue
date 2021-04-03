@@ -360,6 +360,11 @@
     html {
         overflow-y auto
     }
+
+    .row {
+      margin-top: 0px !important;
+      margin-bottom: 0px !important;
+    }
 </style>
 
 <style scoped lang="stylus">
