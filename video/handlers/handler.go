@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"embed"
 	"encoding/json"
 	"errors"
@@ -49,6 +50,40 @@ type connectionWithData map[*sfu.Peer]ExtendedPeerInfo
 type connectionsLockableMap struct {
 	sync.RWMutex
 	connectionWithData
+}
+
+type JsonRpcExtendedHandler struct {
+	*server.JSONSignal
+	parentHandler *HttpHandler
+}
+
+type ContextData struct {
+	userId int64
+	chatId int64
+}
+
+// key is an unexported type for keys defined in this package.
+// This prevents collisions with keys defined in other packages.
+type key int
+
+// contextDataKey is the key for user.User values in Contexts. It is
+// unexported; clients use user.NewContext and user.FromContext
+// instead of using this key directly.
+var contextDataKey key
+
+// NewContext returns a new Context that carries value u.
+func NewContext(ctx context.Context, u *ContextData) context.Context {
+	return context.WithValue(ctx, contextDataKey, u)
+}
+
+// FromContext returns the User value stored in ctx, if any.
+func FromContext(ctx context.Context) (*ContextData, bool) {
+	u, ok := ctx.Value(contextDataKey).(*ContextData)
+	return u, ok
+}
+
+type UserByStreamId struct {
+	StreamId string `json:"streamId"`
 }
 
 func NewHandler(
@@ -118,9 +153,10 @@ func (h *HttpHandler) SfuHandler(w http.ResponseWriter, r *http.Request) {
 	h.storeToIndex(peer0, userId, "", "", "", false, false)
 	defer h.removeFromIndex(peer0, userId, c)
 	p := server.NewJSONSignal(peer0, logger)
+	je := &JsonRpcExtendedHandler{p, h}
 	defer p.Close()
 
-	jc := jsonrpc2.NewConn(r.Context(), websocketjsonrpc2.NewObjectStream(c), p)
+	jc := jsonrpc2.NewConn(r.Context(), websocketjsonrpc2.NewObjectStream(c), je)
 	<-jc.DisconnectNotify()
 }
 
@@ -185,17 +221,17 @@ func (h *HttpHandler) Users(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *HttpHandler) UserByStreamId(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	chatId := vars["chatId"]
-	streamId := r.URL.Query().Get("streamId")
-	userId := r.Header.Get("X-Auth-UserId") // behalf
+type errorNoAccess struct {}
+func (e *errorNoAccess) Error() string { return "No access" }
+
+type errorInternal struct {}
+func (e *errorInternal) Error() string { return "Internal error" }
+
+func (h *HttpHandler) userByStreamId(chatId string, streamId string, userId string) (*NotifyDto, error) {
 	if ok, err := h.checkAccess(userId, chatId); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return nil, &errorInternal{}
 	} else if !ok {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+		return nil, &errorNoAccess{}
 	}
 
 	session := h.getSessionWithoutCreatingAnew(chatId)
@@ -203,7 +239,6 @@ func (h *HttpHandler) UserByStreamId(w http.ResponseWriter, r *http.Request) {
 		for _, peer := range session.Peers() {
 			if h.peerIsAlive(peer) {
 				if pwm := h.getPeerMetadataByStreamId(chatId, streamId); pwm != nil && pwm.ExtendedPeerInfo != nil && pwm.ExtendedPeerInfo.streamId != "" {
-					w.Header().Set("Content-Type", "application/json")
 					d := NotifyDto{
 						PeerId:    pwm.ExtendedPeerInfo.peerId,
 						StreamId:  pwm.ExtendedPeerInfo.streamId,
@@ -211,22 +246,47 @@ func (h *HttpHandler) UserByStreamId(w http.ResponseWriter, r *http.Request) {
 						VideoMute: pwm.ExtendedPeerInfo.videoMute,
 						AudioMute: pwm.ExtendedPeerInfo.audioMute,
 					}
-					marshal, err := json.Marshal(d)
-					if err != nil {
-						logger.Error(err, "Error during marshalling peerWithMetadata to json")
-						w.WriteHeader(http.StatusInternalServerError)
-					} else {
-						_, err := w.Write(marshal)
-						if err != nil {
-							logger.Error(err, "Error during sending json")
-						}
-					}
-					return
+					return &d, nil
 				}
 			}
 		}
 	}
-	w.WriteHeader(http.StatusNoContent)
+	return nil, nil
+}
+
+
+func (h *HttpHandler) UserByStreamId(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	chatId := vars["chatId"]
+	streamId := r.URL.Query().Get("streamId")
+	userId := r.Header.Get("X-Auth-UserId") // behalf
+
+	userDto, err := h.userByStreamId(chatId, streamId, userId)
+	if err != nil {
+		if errors.Is(err, &errorNoAccess{}) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+	if userDto == nil{
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	marshal, err := json.Marshal(userDto)
+	if err != nil {
+		logger.Error(err, "Error during marshalling peerWithMetadata to json")
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		_, err := w.Write(marshal)
+		if err != nil {
+			logger.Error(err, "Error during sending json")
+		}
+	}
+	return
 }
 
 type chatNotifyDto struct {
@@ -415,10 +475,23 @@ func (h *HttpHandler) Static() http.HandlerFunc {
 }
 
 func (h *HttpHandler) checkAccess(userIdString string, chatIdString string) (bool, error) {
+	userId, err := ParseInt64(userIdString)
+	if err != nil {
+		return false, err
+	}
+	chatId, err := ParseInt64(chatIdString)
+	if err != nil {
+		return false, err
+	}
+	return h.checkAccessInt64(userId, chatId)
+}
+
+func (h *HttpHandler) checkAccessInt64(userId int64, chatId int64) (bool, error) {
 	url0 := h.conf.ChatConfig.ChatUrlConfig.Base
 	url1 := h.conf.ChatConfig.ChatUrlConfig.Access
 
-	response, err := h.client.Get(url0 + url1 + "?userId=" + userIdString + "&chatId=" + chatIdString)
+	url := fmt.Sprintf("%v%v?userId=%v&chatId=%v", url0, url1, userId, chatId)
+	response, err := h.client.Get(url)
 	if err != nil {
 		logger.Error(err, "Transport error during checking access")
 		return false, err
@@ -568,4 +641,58 @@ func (h *HttpHandler) Schedule() *chan struct{} {
 		}
 	}()
 	return &quit
+}
+
+type UserDtoWrapper struct {
+	UserDto *NotifyDto `json:"userDto"`
+	Found bool `json:"found"`
+}
+
+func (p *JsonRpcExtendedHandler) Handle(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) {
+	replyError := func(err error) {
+		if errors.Is(err, &errorNoAccess{}) {
+			_ = conn.ReplyWithError(ctx, req.ID, &jsonrpc2.Error{
+				Code:    401,
+				Message: err.Error(),
+			})
+		} else {
+			_ = conn.ReplyWithError(ctx, req.ID, &jsonrpc2.Error{
+				Code:    500,
+				Message: fmt.Sprintf("%s", err),
+			})
+		}
+	}
+
+	fromContext, b := FromContext(ctx)
+	if !b {
+		err := errors.New("unable to extract data from context")
+		p.Logger.Error(err, "problem with getting tata from context")
+		replyError(err)
+
+	}
+
+	switch req.Method {
+	case "userByStreamId":
+		var userByStreamId UserByStreamId
+		err := json.Unmarshal(*req.Params, &userByStreamId)
+		if err != nil {
+			p.Logger.Error(err, "error parsing UserByStreamId request")
+			replyError(err)
+			break
+		}
+		userDto, err := p.parentHandler.userByStreamId(fmt.Sprintf("%v", fromContext.chatId), userByStreamId.StreamId, fmt.Sprintf("%v", fromContext.userId))
+		if err != nil {
+			replyError(err)
+			break
+		}
+		resp := UserDtoWrapper{}
+		if userDto != nil {
+			resp.Found = true
+			resp.UserDto = userDto
+		}
+		_ = conn.Reply(ctx, req.ID, resp)
+
+	default:
+		p.JSONSignal.Handle(ctx, conn, req)
+	}
 }
