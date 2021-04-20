@@ -239,4 +239,13 @@ import {
         display inline-block
         min-height 22px
     }
+
+</style>
+
+<style lang="stylus">
+.v-badge {
+    .v-icon {
+        vertical-align unset
+    }
+}
 </style>
