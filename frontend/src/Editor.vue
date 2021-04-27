@@ -16,21 +16,29 @@ export default {
 
   data() {
     return {
-      editor: null
+      editor: null,
+      cachedValue: null
     };
   },
+  beforeMount() {
+    this.cachedValue = this.$props.value;
+  },
   mounted() {
-    console.log("Options", this.$props.options);
     this.editor = new Quill(this.$refs.editor, this.$props.options);
 
-    this.editor.root.innerHTML = this.value;
+    this.editor.root.innerHTML = this.cachedValue;
 
-    this.editor.on('text-change', () => this.update());
+    this.editor.on('text-change', () => this.onUpdate());
   },
 
   methods: {
-    update() {
-      this.$emit('input', this.editor.getText() ? this.editor.root.innerHTML : '');
+    onUpdate() {
+      let html = this.editor.getText() ? this.editor.root.innerHTML : '';
+      if (html === '<p><br></p>') html = '';
+      this.$emit('input', html);
+    },
+    clear() {
+      this.editor.deleteText(0, this.editor.getLength());
     }
   }
 }
@@ -39,7 +47,7 @@ export default {
 <template>
   <div class="quill-editor">
     <slot name="toolbar"></slot>
-    <div ref="editor" v-html="value"></div>
+    <div ref="editor" v-html="cachedValue"></div>
   </div>
 
 </template>

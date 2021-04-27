@@ -1,9 +1,12 @@
 <template>
     <v-container id="sendButtonContainer" class="py-0 px-1 d-flex flex-column" fluid style="height: 100%">
             <quill-editor
-                v-model="editMessageDto.text"
+                :value="editMessageDto.text"
+                @input="updateModel"
                 :options="editorOption"
-                @keyup.native.ctrl.enter="sendMessageToChat" @keyup.native.esc="resetInput"
+                @keyup.native.ctrl.enter="sendMessageToChat"
+                @keyup.native.esc="resetInput"
+                ref="quillEditorInstance"
             />
             <div id="custom-toolbar">
                 <div class="custom-toolbar-format">
@@ -60,6 +63,7 @@
                 writingUsers: [],
 
                 editorOption: {
+                    theme: 'snow',
                     // Some Quill options...
                     modules: {
                         // https://quilljs.com/docs/modules/toolbar/
@@ -84,6 +88,7 @@
               console.log("Resetting text input");
               this.editMessageDto.text = "";
               this.editMessageDto.id = null;
+              this.$refs.quillEditorInstance.clear();
             },
             onSetMessage(dto) {
                 this.editMessageDto = dto;
@@ -132,6 +137,9 @@
                     this.broadcastMessage = null;
                 }
             },
+            updateModel(html) {
+                this.editMessageDto.text = html;
+            }
         },
         computed: {
             ...mapGetters({currentUser: GET_USER})
