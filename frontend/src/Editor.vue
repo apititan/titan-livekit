@@ -25,9 +25,7 @@ export default {
   },
   mounted() {
     this.editor = new Quill(this.$refs.editor, this.$props.options);
-
     this.editor.root.innerHTML = this.cachedValue;
-
     this.editor.on('text-change', () => this.onUpdate());
   },
 
@@ -38,7 +36,10 @@ export default {
       this.$emit('input', html);
     },
     clear() {
-      this.editor.deleteText(0, this.editor.getLength());
+      this.setHtml('');
+    },
+    setHtml(html) {
+      this.editor.root.innerHTML = html;
     }
   }
 }

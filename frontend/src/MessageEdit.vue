@@ -92,6 +92,7 @@
             },
             onSetMessage(dto) {
                 this.editMessageDto = dto;
+                this.$refs.quillEditorInstance.setHtml(this.editMessageDto.text);
             },
             notifyAboutBroadcast(clear) {
                 if (clear) {
