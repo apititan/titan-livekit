@@ -152,7 +152,6 @@
             }, 500);
             bus.$on(USER_TYPING, this.onUserTyping);
             bus.$on(MESSAGE_BROADCAST, this.onUserBroadcast);
-            this.resetInput();
         },
         beforeDestroy() {
             bus.$off(SET_EDIT_MESSAGE, this.onSetMessage);
