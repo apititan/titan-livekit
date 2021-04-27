@@ -5,10 +5,6 @@ import Quill from 'quill';
 
 export default {
   props: {
-    value: {
-      type: String,
-      default: ''
-    },
     options: {
       type: Object
     }
@@ -17,11 +13,8 @@ export default {
   data() {
     return {
       editor: null,
-      cachedValue: null
+      cachedValue: ''
     };
-  },
-  beforeMount() {
-    this.cachedValue = this.$props.value;
   },
   mounted() {
     this.editor = new Quill(this.$refs.editor, this.$props.options);
@@ -33,13 +26,18 @@ export default {
     onUpdate() {
       let html = this.editor.getText() ? this.editor.root.innerHTML : '';
       if (html === '<p><br></p>') html = '';
-      this.$emit('input', html);
+
+      this.$nextTick(() => {
+        this.$emit('input', html);
+      })
     },
     clear() {
       this.setHtml('');
     },
     setHtml(html) {
-      this.editor.root.innerHTML = html;
+      this.$nextTick(() => {
+        this.editor.setText(html);
+      })
     }
   }
 }

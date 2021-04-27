@@ -1,7 +1,6 @@
 <template>
     <v-container id="sendButtonContainer" class="py-0 px-1 d-flex flex-column" fluid style="height: 100%">
             <quill-editor
-                :value="editMessageDto.text"
                 @input="updateModel"
                 :options="editorOption"
                 @keyup.native.ctrl.enter="sendMessageToChat"
@@ -153,6 +152,7 @@
             }, 500);
             bus.$on(USER_TYPING, this.onUserTyping);
             bus.$on(MESSAGE_BROADCAST, this.onUserBroadcast);
+            this.resetInput();
         },
         beforeDestroy() {
             bus.$off(SET_EDIT_MESSAGE, this.onSetMessage);
