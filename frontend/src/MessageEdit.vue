@@ -41,8 +41,7 @@
     import {GET_USER} from "./store";
     import 'quill/dist/quill.core.css'
     import 'quill/dist/quill.snow.css'
-
-    import { quillEditor } from 'vue-quill-editor'
+    import Editor from "./Editor";
 
     const dtoFactory = ()=>{
         return {
@@ -172,7 +171,7 @@
             }
         },
         components: {
-            quillEditor
+            quillEditor: Editor
         }
     }
 </script>
