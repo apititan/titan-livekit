@@ -36,7 +36,7 @@ export default {
     },
     setHtml(html) {
       this.$nextTick(() => {
-        this.editor.setText(html);
+        this.editor.pasteHTML(html);
       })
     }
   }
