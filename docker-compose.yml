@@ -11,9 +11,9 @@ services:
     command: --configFile=/traefik_conf/traefik.yml
     ports:
       - 8081:8081
-#    extra_hosts:
-#      # https://github.com/moby/moby/pull/40007
-#      - "host.docker.internal:host-gateway"
+    extra_hosts:
+      # https://github.com/moby/moby/pull/40007
+      - "host.docker.internal:host-gateway"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./docker/traefik_conf:/traefik_conf
