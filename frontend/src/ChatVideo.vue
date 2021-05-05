@@ -1,5 +1,20 @@
 <template>
     <v-col cols="12" class="ma-0 pa-0" id="video-container">
+        <v-snackbar v-model="showPermissionAsk" color="warning" timeout="-1" :multi-line="true" top>
+            Please allow audio
+            <template v-slot:action="{ attrs }">
+                <v-btn
+                    text
+                    v-bind="attrs"
+                    @click="onClickPermitted()"
+                >
+                    Allow
+                </v-btn>
+                <v-btn text v-bind="attrs" @click="showPermissionAsk = false">Close</v-btn>
+
+            </template>
+        </v-snackbar>
+
         <UserVideo ref="localVideoComponent" :key="localPublisherKey" :initial-muted="initialMuted"/>
     </v-col>
 </template>
@@ -51,7 +66,8 @@
                 localPublisherKey: 1,
                 closingStarted: false,
                 chatId: null,
-                remoteVideoIsMuted: true
+                remoteVideoIsMuted: true,
+                showPermissionAsk: true
             }
         },
         props: ['chatDto'],
@@ -65,6 +81,10 @@
             }
         },
         methods: {
+            onClickPermitted() {
+                this.ensureAudioIsEnabledAccordingBrowserPolicies();
+                this.showPermissionAsk = false;
+            },
             joinSession(configObj) {
                 const config = {
                     iceServers: configObj.ICEServers.map((iceServConf)=>{
