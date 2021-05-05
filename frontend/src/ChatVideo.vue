@@ -231,7 +231,7 @@
                     console.warn("Unable to notify about joining")
                 }
             },
-            enableAudio() {
+            ensureAudioIsEnabledAccordingBrowserPolicies() {
                 if (this.remoteVideoIsMuted) {
                     // Unmute all the current videoElements.
                     for (const streamInfo of Object.values(this.streams)) {
@@ -356,7 +356,7 @@
                 }
             },
             onStartAudioMuting(requestedState) {
-                this.enableAudio();
+                this.ensureAudioIsEnabledAccordingBrowserPolicies();
                 if (requestedState) {
                     this.localMedia.mute("audio");
                     this.$store.commit(SET_MUTE_AUDIO, requestedState);
