@@ -7,6 +7,7 @@
                     text
                     v-bind="attrs"
                     @click="onClickPermitted()"
+                    class="blink-btn"
                 >
                     Allow
                 </v-btn>
@@ -468,5 +469,14 @@
         overflow-x: auto;
         overflow-y: hidden;
         height 100%
+    }
+
+    .blink-btn {
+        animation: blink 0.5s;
+        animation-iteration-count: 20;
+    }
+
+    @keyframes blink {
+        50% { opacity: 10% }
     }
 </style>
