@@ -1,6 +1,6 @@
 <template>
     <v-col cols="12" class="ma-0 pa-0" id="video-container">
-        <UserVideo ref="localVideoComponent" :key="localPublisherKey"/>
+        <UserVideo ref="localVideoComponent" :key="localPublisherKey" :initial-muted="initialMuted"/>
     </v-col>
 </template>
 
@@ -50,7 +50,8 @@
                 localMedia: null,
                 localPublisherKey: 1,
                 closingStarted: false,
-                chatId: null
+                chatId: null,
+                remoteVideoIsMuted: true
             }
         },
         props: ['chatDto'],
@@ -58,6 +59,9 @@
             ...mapGetters({currentUser: GET_USER, videoMuted: GET_MUTE_VIDEO, audioMuted: GET_MUTE_AUDIO}),
             myUserName() {
                 return this.currentUser.login
+            },
+            initialMuted() {
+                return audioMuteDefault;
             }
         },
         methods: {
@@ -113,7 +117,7 @@
                         if (!this.streams[stream.id]) {
                             console.log("set track", track.id, "for stream", stream.id, "vuetify", this.$vuetify);
 
-                            const component = new ComponentClass({vuetify: vuetify});
+                            const component = new ComponentClass({vuetify: vuetify, propsData: { initialMuted: audioMuteDefault }});
                             component.$mount();
                             this.remotesDiv.appendChild(component.$el);
                             component.setSource(stream);
@@ -227,6 +231,21 @@
                     console.warn("Unable to notify about joining")
                 }
             },
+            enableAudio() {
+                if (this.remoteVideoIsMuted) {
+                    // Unmute all the current videoElements.
+                    for (const streamInfo of Object.values(this.streams)) {
+                        let { component } = streamInfo;
+                        const videoElement = component.getVideoElement();
+                        videoElement.pause();
+                        videoElement.muted = false;
+                        videoElement.play();
+                    }
+                    // Set remoteVideoIsMuted to false so that all future autoplays
+                    // work.
+                    this.remoteVideoIsMuted = false;
+                }
+            },
             onStartScreenSharing() {
                 this.localMedia.unpublish();
                 if (this.localMedia) {
@@ -269,7 +288,7 @@
                   this.$refs.localVideoComponent.setAudioMute(this.audioMuted);
                   this.clientLocal.publish(media);
                   this.$store.commit(SET_SHARE_SCREEN, false);
-                  this.setMuteDefaults();
+                  this.setLocalMuteDefaults();
                 });
             },
             getAndPublishScreen() {
@@ -284,10 +303,10 @@
                     this.$refs.localVideoComponent.setUserName(this.myUserName);
                     this.clientLocal.publish(media);
                     this.$store.commit(SET_SHARE_SCREEN, true);
-                    this.setMuteDefaults();
+                    this.setLocalMuteDefaults();
                 });
             },
-            setMuteDefaults() {
+            setLocalMuteDefaults() {
                 if (this.audioMuted) {
                     this.localMedia.mute("audio");
                 } else {
@@ -343,6 +362,7 @@
                     this.$refs.localVideoComponent.setAudioMute(requestedState);
                     this.notifyWithData();
                 } else {
+                    this.enableAudio();
                     this.localMedia.unmute("audio").then(value => {
                         this.$store.commit(SET_MUTE_AUDIO, requestedState);
                         this.$refs.localVideoComponent.setAudioMute(requestedState);
