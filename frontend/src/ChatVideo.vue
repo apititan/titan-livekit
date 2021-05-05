@@ -117,7 +117,7 @@
                         if (!this.streams[stream.id]) {
                             console.log("set track", track.id, "for stream", stream.id, "vuetify", this.$vuetify);
 
-                            const component = new ComponentClass({vuetify: vuetify, propsData: { initialMuted: audioMuteDefault }});
+                            const component = new ComponentClass({vuetify: vuetify, propsData: { initialMuted: this.remoteVideoIsMuted }});
                             component.$mount();
                             this.remotesDiv.appendChild(component.$el);
                             component.setSource(stream);
@@ -356,13 +356,13 @@
                 }
             },
             onStartAudioMuting(requestedState) {
+                this.enableAudio();
                 if (requestedState) {
                     this.localMedia.mute("audio");
                     this.$store.commit(SET_MUTE_AUDIO, requestedState);
                     this.$refs.localVideoComponent.setAudioMute(requestedState);
                     this.notifyWithData();
                 } else {
-                    this.enableAudio();
                     this.localMedia.unmute("audio").then(value => {
                         this.$store.commit(SET_MUTE_AUDIO, requestedState);
                         this.$refs.localVideoComponent.setAudioMute(requestedState);
