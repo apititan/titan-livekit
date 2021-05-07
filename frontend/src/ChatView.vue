@@ -20,7 +20,7 @@
                 </div>
             </pane>
             <pane max-size="70" min-size="12" v-bind:size="editSize">
-                <MessageEdit :chatId="chatId" :canBroadcast="canBroadcast"/>
+                <MessageEdit :chatId="chatId" :canBroadcast="canBroadcast" @sentNewMessage="delayedScrollDown()"/>
             </pane>
         </splitpanes>
     </v-container>
@@ -251,6 +251,11 @@
                 } else {
                     console.log("Skipping", dto)
                 }
+            },
+            delayedScrollDown() {
+                setTimeout(()=>{
+                    this.scrollDown();
+                }, 250)
             },
             scrollDown() {
                 Vue.nextTick(() => {

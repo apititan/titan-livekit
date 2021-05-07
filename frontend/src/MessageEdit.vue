@@ -80,6 +80,9 @@
                 if (this.editMessageDto.text && this.editMessageDto.text !== "") {
                     (this.editMessageDto.id ? axios.put(`/api/chat/`+this.chatId+'/message', this.editMessageDto) : axios.post(`/api/chat/`+this.chatId+'/message', this.editMessageDto)).then(response => {
                         this.resetInput();
+                        if (!this.editMessageDto.id) {
+                            this.$emit("sentNewMessage");
+                        }
                     })
                 }
             },
