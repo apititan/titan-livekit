@@ -106,7 +106,7 @@
                 this.peerId = uuidv4();
                 this.signalLocal.onopen = () => {
                     this.clientLocal.join(`chat${this.chatId}`, this.peerId).then(()=>{
-                        console.log("In join!!");
+                        console.log("Join has been happened, going to media devices");
                         this.getAndPublishCamera()
                             .then(()=>{
                               this.notifyAboutJoining();
