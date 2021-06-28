@@ -161,7 +161,7 @@ func main() {
 	// Pass logr instance
 	sfu.Logger = logger
 
-	conf.TurnAuth = service.GetCompositeTurnAuth(conf)
+	//conf.TurnAuth = service.GetCompositeTurnAuth(conf)
 	sfuInstance := sfu.NewSFU(conf.Config)
 	dc := sfuInstance.NewDatachannel(sfu.APIChannelLabel)
 	dc.Use(datachannel.SubscriberAPI)

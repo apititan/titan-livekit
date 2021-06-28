@@ -87,14 +87,14 @@
                 this.showPermissionAsk = false;
             },
             joinSession(configObj) {
-                console.info("Used webrtc config", JSON.stringify(configObj));
+                //console.info("Used webrtc config", JSON.stringify(configObj));
 
                 this.signalLocal = new IonSFUJSONRPCSignal(
                     getWebsocketUrlPrefix()+`/api/video/${this.chatId}/ws`
                 );
                 this.remotesDiv = document.getElementById("video-container");
 
-                this.clientLocal = new Client(this.signalLocal, configObj);
+                this.clientLocal = new Client(this.signalLocal);
 
                 this.signalLocal.onerror = (e) => { console.error("Error in signal", e); }
                 this.signalLocal.onclose = () => {
@@ -104,7 +104,7 @@
 
                 this.peerId = uuidv4();
                 this.signalLocal.onopen = () => {
-                    this.clientLocal.join(`chat${this.chatId}`, this.peerId).then(()=>{
+                    this.clientLocal.join(`chat${this.chatId}`/*, this.peerId*/).then(()=>{
                         this.getAndPublishCamera()
                             .then(()=>{
                               this.notifyAboutJoining();

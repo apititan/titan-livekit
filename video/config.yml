@@ -48,10 +48,10 @@ webrtc:
 # if sfu behind nat, set iceserver
 # iceserver:
 #   urls: ["stun:stun.stunprotocol.org:3478"]
-  iceserver:
-#   urls: ["turn:turn.awsome.org:3478"]
-   username: "InternalUserNamE"
-   credential: "SeCrEt"
+#  iceserver:
+##   urls: ["turn:turn.awsome.org:3478"]
+#   username: "InternalUserNamE"
+#   credential: "SeCrEt"
 
 # sdp semantics:
 # "unified-plan"
@@ -60,6 +60,14 @@ webrtc:
   sdpsemantics: "unified-plan"
 # toggle multicast dns support: https://tools.ietf.org/html/draft-mdns-ice-candidates-00
   mdns: true
+
+  timeouts:
+    # The duration in [sec] without network activity before a ICE Agent is considered disconnected
+    disconnected: 5
+    # The duration in [sec] without network activity before a ICE Agent is considered failed after disconnected
+    failed: 25
+    # # How often in [sec] the ICE Agent sends extra traffic if there is no activity, if media is flowing no traffic will be sent
+    keepalive: 2
 
   candidates:
 # In case you're deploying ion-sfu on a server which is configured with
