@@ -37,7 +37,8 @@
         VIDEO_START_MUTING
     } from "./bus";
     import axios from "axios";
-    import { Client, LocalStream } from 'ion-sdk-js';
+    import Client from 'ion-sdk-js/lib/client';
+    import { LocalStream } from 'ion-sdk-js/lib/stream';
     import { IonSFUJSONRPCSignal } from 'ion-sdk-js/lib/signal/json-rpc-impl';
     import UserVideo from "./UserVideo";
     import {audioMuteDefault, getWebsocketUrlPrefix} from "./utils";
@@ -87,14 +88,14 @@
                 this.showPermissionAsk = false;
             },
             joinSession(configObj) {
-                //console.info("Used webrtc config", JSON.stringify(configObj));
+                console.info("Used webrtc config", JSON.stringify(configObj));
 
                 this.signalLocal = new IonSFUJSONRPCSignal(
                     getWebsocketUrlPrefix()+`/api/video/${this.chatId}/ws`
                 );
                 this.remotesDiv = document.getElementById("video-container");
 
-                this.clientLocal = new Client(this.signalLocal);
+                this.clientLocal = new Client(this.signalLocal, configObj);
 
                 this.signalLocal.onerror = (e) => { console.error("Error in signal", e); }
                 this.signalLocal.onclose = () => {
@@ -104,7 +105,8 @@
 
                 this.peerId = uuidv4();
                 this.signalLocal.onopen = () => {
-                    this.clientLocal.join(`chat${this.chatId}`/*, this.peerId*/).then(()=>{
+                    this.clientLocal.join(`chat${this.chatId}`, this.peerId).then(()=>{
+                        console.log("In join!!");
                         this.getAndPublishCamera()
                             .then(()=>{
                               this.notifyAboutJoining();
