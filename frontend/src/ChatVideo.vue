@@ -99,27 +99,28 @@
 
                 this.signalLocal.onerror = (e) => { console.error("Error in signal", e); }
                 this.signalLocal.onclose = () => {
-                  console.info("Signal is closed, something gonna happen");
-                  this.tryRestartVideoProcess();
+                    console.info("Signal is closed, something gonna happen");
+                    this.tryRestartVideoProcess();
                 }
 
                 this.peerId = uuidv4();
                 this.signalLocal.onopen = () => {
-                    this.clientLocal.join(`chat${this.chatId}`, this.peerId).then(()=>{
-                        console.log("Join has been happened, going to media devices");
-                        this.getAndPublishCamera()
-                            .then(()=>{
-                              this.notifyAboutJoining();
-                            }).then(value => {
-                                this.startHealthCheckPing();
-                            })
-                            .catch(reason => {
-                              console.error("Error during publishing camera stream, won't restart...", reason);
-                              this.$refs.localVideoComponent.setUserName('Error get getUserMedia');
-                            });
-                    })
+                    console.info("Joining to session...")
+                    this.clientLocal.join(`chat${this.chatId}`, this.peerId)
                 }
-
+                this.signalLocal.onnegotiate = (e) => {
+                    console.log("signalLocal.onnegotiate, going to media devices", e)
+                    this.getAndPublishCamera()
+                        .then(()=>{
+                            this.notifyAboutJoining();
+                        }).then(value => {
+                        this.startHealthCheckPing();
+                    })
+                    .catch(reason => {
+                        console.error("Error during publishing camera stream, won't restart...", reason);
+                        this.$refs.localVideoComponent.setUserName('Error get getUserMedia');
+                    });
+                }
                 // adding remote tracks
                 this.clientLocal.ontrack = (track, stream) => {
                     console.debug("got track", track.id, "for stream", stream.id);
@@ -334,11 +335,11 @@
             startVideoProcess() {
                 this.getConfig()
                     .then(config => {
-                        console.info("Joining to session...")
+                        console.info("Got config, starting a complex process to join to session...")
                         return this.joinSession(config);
                     })
                     .catch(reason => {
-                        console.error("Error during get config, restarting...")
+                        console.error("Error during get config or joinSession, restarting...", reason)
                         this.tryRestartVideoProcess();
                     })
             },
