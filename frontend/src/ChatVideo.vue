@@ -31,10 +31,10 @@
         SET_VIDEO_CHAT_USERS_COUNT
     } from "./store";
     import bus, {
-        AUDIO_START_MUTING, REQUEST_CHANGE_VIDEO_RESOLUTION,
-        SHARE_SCREEN_START,
-        SHARE_SCREEN_STOP, VIDEO_CALL_CHANGED, VIDEO_RESOLUTION_CHANGED,
-        VIDEO_START_MUTING
+      AUDIO_START_MUTING, REQUEST_CHANGE_VIDEO_RESOLUTION,
+      SHARE_SCREEN_START,
+      SHARE_SCREEN_STOP, VIDEO_CALL_CHANGED, VIDEO_JOIN_SUCCEED, VIDEO_RESOLUTION_CHANGED,
+      VIDEO_START_MUTING
     } from "./bus";
     import axios from "axios";
     import Client from 'ion-sdk-js/lib/client';
@@ -87,7 +87,7 @@
                 this.ensureAudioIsEnabledAccordingBrowserPolicies();
                 this.showPermissionAsk = false;
             },
-            joinSession(configObj) {
+            async joinSession(configObj) {
                 console.info("Used webrtc config", JSON.stringify(configObj));
 
                 this.signalLocal = new IonSFUJSONRPCSignal(
@@ -108,19 +108,7 @@
                     console.info("Joining to session...")
                     this.clientLocal.join(`chat${this.chatId}`, this.peerId)
                 }
-                this.signalLocal.onnegotiate = (e) => {
-                    console.log("signalLocal.onnegotiate, going to media devices", e)
-                    this.getAndPublishCamera()
-                        .then(()=>{
-                            this.notifyAboutJoining();
-                        }).then(value => {
-                        this.startHealthCheckPing();
-                    })
-                    .catch(reason => {
-                        console.error("Error during publishing camera stream, won't restart...", reason);
-                        this.$refs.localVideoComponent.setUserName('Error get getUserMedia');
-                    });
-                }
+
                 // adding remote tracks
                 this.clientLocal.ontrack = (track, stream) => {
                     console.debug("got track", track.id, "for stream", stream.id);
@@ -135,13 +123,52 @@
                             this.streams[stream.id] = {stream, component};
 
                             stream.onremovetrack = () => {
-                                this.removeTrack(stream.id, track.id, component)
+                              this.removeTrack(stream.id, track.id, component)
                             };
 
                             this.askUserNameWithRetries(stream.id);
                         }
                     }
                 };
+
+
+                console.log("signalLocal.onnegotiate, going to media devices", e)
+                this.localMedia = await this.getAndPublishCamera() // TODO rename to getCamera
+                    .then(()=>{
+                        this.notifyAboutJoining();
+                    }).then(value => {
+                        this.startHealthCheckPing();
+                    }).catch(reason => {
+                        console.error("Error during publishing camera stream, won't restart...", reason);
+                        this.$refs.localVideoComponent.setUserName('Error get getUserMedia');
+                    });
+                // .catch(reason => {
+                //     console.error("Error during publishing camera stream, won't restart...", reason);
+                //     this.$refs.localVideoComponent.setUserName('Error get getUserMedia');
+                // });
+              /*
+              .then((media) => {
+                  this.localMedia = media;
+                  this.$refs.localVideoComponent.setSource(media);
+                  this.$refs.localVideoComponent.setStreamMuted(true);
+                  this.$refs.localVideoComponent.setUserName(this.myUserName);
+                  this.$refs.localVideoComponent.setDisplayAudioMute(this.audioMuted);
+                  this.clientLocal.publish(media);
+                  this.$store.commit(SET_SHARE_SCREEN, false);
+                  this.setLocalMuteDefaults();
+                  this.insideSwitchingCameraScreen = false;
+                });
+               */
+                this.$refs.localVideoComponent.setSource(media);
+                this.$refs.localVideoComponent.setStreamMuted(true);
+                this.$refs.localVideoComponent.setUserName(this.myUserName);
+                this.$refs.localVideoComponent.setDisplayAudioMute(this.audioMuted);
+
+                this.clientLocal.publish(this.localMedia)
+                this.$store.commit(SET_SHARE_SCREEN, false);
+                this.setLocalMuteDefaults();
+                this.insideSwitchingCameraScreen = false;
+
             },
             removeTrack(streamId, trackId, component) {
               console.log("removed track", trackId, "for stream", streamId);
@@ -298,17 +325,7 @@
                 return LocalStream.getUserMedia({
                   resolution: resolution,
                   audio: true,
-                }).then((media) => {
-                  this.localMedia = media;
-                  this.$refs.localVideoComponent.setSource(media);
-                  this.$refs.localVideoComponent.setStreamMuted(true);
-                  this.$refs.localVideoComponent.setUserName(this.myUserName);
-                  this.$refs.localVideoComponent.setDisplayAudioMute(this.audioMuted);
-                  this.clientLocal.publish(media);
-                  this.$store.commit(SET_SHARE_SCREEN, false);
-                  this.setLocalMuteDefaults();
-                  this.insideSwitchingCameraScreen = false;
-                });
+                })
             },
             getAndPublishScreen() {
                 this.insideSwitchingCameraScreen = true;
@@ -449,6 +466,7 @@
             bus.$on(AUDIO_START_MUTING, this.onStartAudioMuting);
             bus.$on(VIDEO_CALL_CHANGED, this.onVideoCallChanged);
             bus.$on(REQUEST_CHANGE_VIDEO_RESOLUTION, this.onVideoResolutionChanged);
+            bus.$on(VIDEO_JOIN_SUCCEED, this.onJoinSucceed);
         },
         destroyed() {
             bus.$off(SHARE_SCREEN_START, this.onStartScreenSharing);
@@ -457,6 +475,7 @@
             bus.$off(AUDIO_START_MUTING, this.onStartAudioMuting);
             bus.$off(VIDEO_CALL_CHANGED, this.onVideoCallChanged);
             bus.$off(REQUEST_CHANGE_VIDEO_RESOLUTION, this.onVideoResolutionChanged);
+            bus.$off(VIDEO_JOIN_SUCCEED, this.onJoinSucceed);
         },
         components: {
             UserVideo
