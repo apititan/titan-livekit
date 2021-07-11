@@ -1,6 +1,6 @@
 <template>
     <div class="video-container-element">
-        <video autoPlay playsInline ref="videoRef" :muted="initialMuted" v-on:dblclick="onDoubleClick"/>
+        <video autoPlay playsInline ref="videoRef" :muted="initialMuted" v-on:dblclick="onDoubleClick" @playing="onPlaying"/>
         <p class="video-container-element-caption">{{ userName }} <v-icon v-if="audioMute">mdi-microphone-off</v-icon></p>
     </div>
 </template>
@@ -51,6 +51,9 @@ export default {
                 elem.webkitRequestFullscreen();
             }
         },
+        onPlaying(e) {
+            console.log("On playing", e);
+        }
     },
 };
 </script>
