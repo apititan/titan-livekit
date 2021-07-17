@@ -43,7 +43,6 @@
                     :data-active="active"
                     :title="`Click to change message ${index}`"
                     class="message"
-                    @click.native="changeMessage(item)"
                 >
                     <div class="avatar">
                         <img
@@ -72,7 +71,7 @@ import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import { DynamicScroller, DynamicScrollerItem } from 'vue-virtual-scroller'
 function generateMessage () {
     return {
-        avatar: faker.internet.avatar(),
+        avatar: 'https://cdn3.iconfinder.com/data/icons/rcons-user-action/32/boy-512.png',
         message: faker.lorem.text(),
     }
 }
@@ -109,10 +108,6 @@ export default {
     },
 
     methods: {
-        changeMessage (message) {
-            Object.assign(message, generateMessage())
-        },
-
         addMessage () {
             for (let i = 0; i < 10; i++) {
                 this.items.push({
