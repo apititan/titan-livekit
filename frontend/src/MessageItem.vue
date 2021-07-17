@@ -4,20 +4,20 @@
         class="pr-1 mr-1 pl-4"
         :class="{ highlight: highlight }"
     >
-        <router-link :to="{ name: 'profileUser', params: { id: item.owner.id }}">
-            <v-list-item-avatar v-if="item.owner && item.owner.avatar">
-                <v-img :src="item.owner.avatar"></v-img>
+        <router-link :to="{ name: 'profileUser', params: { id: source.owner.id }}">
+            <v-list-item-avatar v-if="source.owner && source.owner.avatar">
+                <v-img :src="source.owner.avatar"></v-img>
             </v-list-item-avatar>
         </router-link>
 
-        <v-list-item-content @click="onMessageClick(item)" @mousemove="onMessageMouseMove(item)">
+        <v-list-item-content @click="onMessageClick(source)" @mousemove="onMessageMouseMove(source)">
             <v-container class="ma-0 pa-0 d-flex list-item-head">
-                <router-link :to="{ name: 'profileUser', params: { id: item.owner.id }}">{{getOwner(item)}}</router-link><span class="with-space"> at </span>{{getDate(item)}}
-                <v-icon class="mx-1 ml-2" v-if="item.fileItemUuid" @click="onFilesClicked(item.fileItemUuid)" small>mdi-file-download</v-icon>
-                <v-icon class="mx-1" v-if="item.canEdit" color="error" @click="deleteMessage(item)" dark small>mdi-delete</v-icon>
-                <v-icon class="mx-1" v-if="item.canEdit" color="primary" @click="editMessage(item)" dark small>mdi-lead-pencil</v-icon>
+                <router-link :to="{ name: 'profileUser', params: { id: source.owner.id }}">{{getOwner(source)}}</router-link><span class="with-space"> at </span>{{getDate(source)}}
+                <v-icon class="mx-1 ml-2" v-if="source.fileItemUuid" @click="onFilesClicked(source.fileItemUuid)" small>mdi-file-download</v-icon>
+                <v-icon class="mx-1" v-if="source.canEdit" color="error" @click="deleteMessage(source)" dark small>mdi-delete</v-icon>
+                <v-icon class="mx-1" v-if="source.canEdit" color="primary" @click="editMessage(source)" dark small>mdi-lead-pencil</v-icon>
             </v-container>
-            <v-list-item-content class="pre-formatted pa-0 ma-0 mt-1 message-item-text" v-html="item.text"></v-list-item-content>
+            <v-list-item-content class="pre-formatted pa-0 ma-0 mt-1 message-item-text" v-html="source.text"></v-list-item-content>
         </v-list-item-content>
     </v-list-item>
 </template>
@@ -29,7 +29,23 @@
     import { format, parseISO, differenceInDays } from 'date-fns'
 
     export default {
-        props: ['item', 'chatId', 'highlight'],
+        props: {
+            index: { // index of current item
+                type: Number
+            },
+            source: { // here is: {uid: 'unique_1', text: 'abc'}
+                type: Object,
+                default () {
+                    return {}
+                }
+            }
+        },
+        computed: {
+            highlight() {
+                // item.owner.id === currentUser.id
+                return false
+            }
+        },
         methods: {
             onMessageClick(dto) {
                 this.centrifuge.send({payload: { chatId: this.chatId, messageId: dto.id}, "type": "message_read"})

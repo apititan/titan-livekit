@@ -7,12 +7,18 @@
                 <ChatVideo :chatDto="chatDto"/>
             </pane>
             <pane v-bind:size="messagesSize">
-                <div id="messagesScroller" style="overflow-y: auto; height: 100%">
+                <div id="messagesScroller">
                     <v-list  v-if="currentUser">
+                        <virtual-list style="height: 600px; overflow-y: auto;"
+                            :data-key="'id'"
+                            :data-sources="items"
+                            :data-component="itemComponent"
+                        />
+                        <!--
                         <template v-for="(item, index) in items">
                             <MessageItem :key="item.id" :item="item" :chatId="chatId" :highlight="item.owner.id === currentUser.id"></MessageItem>
                             <v-divider :dark="item.owner.id === currentUser.id"></v-divider>
-                        </template>
+                        </template>-->
                     </v-list>
                     <infinite-loading @infinite="infiniteHandler" :identifier="infiniteId" direction="top" force-use-infinite-wrapper="#messagesScroller" :distance="0">
                         <template slot="no-more"><span/></template>
@@ -63,6 +69,7 @@
     } from "./store";
     import { Splitpanes, Pane } from 'splitpanes'
     import {getCorrectUserAvatar} from "./utils";
+    import VirtualList from 'vue-virtual-scroll-list';
     import MessageItem from "./MessageItem";
     // import 'splitpanes/dist/splitpanes.css';
     import debounce from "lodash/debounce";
@@ -83,6 +90,7 @@
         mixins: [infinityListMixin()],
         data() {
             return {
+                itemComponent: MessageItem,
                 chatMessagesSubscription: null,
                 chatDto: {
                     participantIds:[],
@@ -423,7 +431,8 @@
             MessageEdit,
             ChatVideo,
             Splitpanes, Pane,
-            MessageItem
+            // MessageItem,
+            'virtual-list': VirtualList
         }
     }
 </script>
