@@ -10,20 +10,24 @@
                 <div id="messagesScroller">
                     <v-list  v-if="currentUser">
                         <virtual-list style="height: 600px; overflow-y: auto;"
+                            :class="{ overflow: overflow }"
                             :data-key="'id'"
                             :data-sources="items"
                             :data-component="itemComponent"
-                        />
+                            @totop="onTotop"
+                            ref="vsl"
+                        >
+                            <div slot="header" v-show="overflow" class="header">
+                                <div class="spinner" v-show="!finished"></div>
+                                <div class="finished" v-show="finished">No more data</div>
+                            </div>
+                        </virtual-list>
                         <!--
                         <template v-for="(item, index) in items">
                             <MessageItem :key="item.id" :item="item" :chatId="chatId" :highlight="item.owner.id === currentUser.id"></MessageItem>
                             <v-divider :dark="item.owner.id === currentUser.id"></v-divider>
                         </template>-->
                     </v-list>
-                    <infinite-loading @infinite="infiniteHandler" :identifier="infiniteId" direction="top" force-use-infinite-wrapper="#messagesScroller" :distance="0">
-                        <template slot="no-more"><span/></template>
-                        <template slot="no-results">No more messages</template>
-                    </infinite-loading>
                 </div>
             </pane>
             <pane max-size="70" min-size="12" v-bind:size="editSize">
@@ -90,7 +94,11 @@
         mixins: [infinityListMixin()],
         data() {
             return {
+                overflow: false,
+                finished: false,
                 itemComponent: MessageItem,
+                isFetching: false,
+
                 chatMessagesSubscription: null,
                 chatDto: {
                     participantIds:[],
@@ -220,8 +228,51 @@
                 this.$forceUpdate();
             },
 
-            infiniteHandler($state) {
-                axios.get(`/api/chat/${this.chatId}/message`, {
+
+            onTotop () {
+                // only page type has paging
+                // if (getLoadType() !== LOAD_TYPES.PAGES || this.param.isFetching) {
+                //     return
+                // }
+                this.isFetching = true
+                // get next page
+                this.infiniteHandler().then((messages) => {
+                    if (!messages) {
+                        console.debug("no more messages")
+                        this.finished = true
+                        return
+                    }
+                    console.debug("processing messages")
+
+                    const sids = this.getSids(messages)
+                    this.items = messages.concat(this.items)
+                    this.$nextTick(() => {
+                        const vsl = this.$refs.vsl
+                        const offset = sids.reduce((previousValue, currentSid) => {
+                            const previousSize = typeof previousValue === 'string' ? vsl.getSize(previousValue) : previousValue
+                            return previousSize + this.$refs.vsl.getSize(currentSid)
+                        })
+                        this.setVirtualListToOffset(offset)
+                        this.isFetching = false
+                    })
+                })
+            },
+            getSids(messages) {
+                return messages.map((message) => message.id)
+            },
+            setVirtualListToOffset (offset) {
+                if (this.$refs.vsl) {
+                    this.$refs.vsl.scrollToOffset(offset)
+                }
+            },
+            checkOverFlow () {
+                const vsl = this.$refs.vsl
+                if (vsl) {
+                    this.overflow = vsl.getScrollSize() > vsl.getClientSize()
+                }
+            },
+            infiniteHandler() {
+                return axios.get(`/api/chat/${this.chatId}/message`, {
                     params: {
                         page: this.page,
                         size: pageSize,
@@ -233,16 +284,12 @@
                         this.page += 1;
                         // this.items = [...this.items, ...list];
                         // this.items.unshift(...list.reverse());
-                        this.items = list.reverse().concat(this.items);
-                        return true;
+                        //this.items = list.reverse().concat(this.items);
+                        // console.log("promise success");
+                        return Promise.resolve(list.reverse());
                     } else {
-                        return false
-                    }
-                }).then(value => {
-                    if (value) {
-                        $state?.loaded();
-                    } else {
-                        $state?.complete();
+                        // console.log("promise null");
+                        return Promise.resolve(null);
                     }
                 })
             },
@@ -404,6 +451,30 @@
             bus.$on(VIDEO_CALL_KICKED, this.onVideoCallKicked);
             bus.$on(REFRESH_ON_WEBSOCKET_RESTORED, this.onWsRestoredRefresh);
             bus.$on(VIDEO_CALL_CHANGED, this.onVideoCallChanged);
+
+
+            // axios.get(`/api/chat/${this.chatId}/message`, {
+            //     params: {
+            //         page: this.page,
+            //         size: pageSize,
+            //         reverse: true
+            //     },
+            // }).then(({data})=>{
+            //     const list = data;
+            //     if (list.length) {
+            //         this.page += 1;
+            //         // this.items = [...this.items, ...list];
+            //         // this.items.unshift(...list.reverse());
+            //         this.items = list.reverse().concat(this.items);
+            //         return true; // todo
+            //     } else {
+            //         return false // todo
+            //     }
+            // });
+
+            this.infiniteHandler().then(list => {
+                this.items = list.concat(this.items);
+            });
         },
         beforeDestroy() {
             window.removeEventListener('resize', this.onResizedListener);
