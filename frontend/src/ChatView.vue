@@ -14,7 +14,7 @@
                             <v-divider :dark="item.owner.id === currentUser.id"></v-divider>
                         </template>
                     </v-list>
-                    <infinite-loading @infinite="infiniteHandler" :identifier="infiniteId" direction="top" force-use-infinite-wrapper="#messagesScroller" :distance="0">
+                    <infinite-loading ref="infinityRef" @infinite="infiniteHandler" :identifier="infiniteId" direction="top" force-use-infinite-wrapper="#messagesScroller" :distance="0">
                         <template slot="no-more"><span/></template>
                         <template slot="no-results">No more messages</template>
                     </infinite-loading>
@@ -225,6 +225,14 @@
                         // this.items = [...this.items, ...list];
                         // this.items.unshift(...list.reverse());
                         this.items = list.reverse().concat(this.items);
+                        const maxItemsLength = 200;
+                        const reduceToLength = 100;
+                        if (this.items.length > maxItemsLength) {
+                            setTimeout(() => {
+                                console.log("Reducing to", maxItemsLength);
+                                this.items = this.items.slice(0, reduceToLength);
+                            }, 1);
+                        }
                         return true;
                     } else {
                         return false
@@ -399,6 +407,15 @@
             bus.$on(VIDEO_CALL_KICKED, this.onVideoCallKicked);
             bus.$on(REFRESH_ON_WEBSOCKET_RESTORED, this.onWsRestoredRefresh);
             bus.$on(VIDEO_CALL_CHANGED, this.onVideoCallChanged);
+
+            const oldInfScH = this.$refs.infinityRef.scrollHandler;
+            this.$refs.infinityRef.scrollHandler = (e) => {
+                console.log("On scroll");
+                oldInfScH(e);
+                if (this.isScrolledToBottom()) {
+                    console.log("On bottom");
+                }
+            }
         },
         beforeDestroy() {
             window.removeEventListener('resize', this.onResizedListener);
