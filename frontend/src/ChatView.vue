@@ -7,14 +7,14 @@
                 <ChatVideo :chatDto="chatDto"/>
             </pane>
             <pane v-bind:size="messagesSize">
-                <div id="messagesScroller" style="overflow-y: auto; height: 100%">
+                <div id="messagesScroller" style="overflow-y: auto; height: 100%" @scroll="onScroll">
                     <v-list  v-if="currentUser">
                         <template v-for="(item, index) in items">
                             <MessageItem :key="item.id" :item="item" :chatId="chatId" :highlight="item.owner.id === currentUser.id"></MessageItem>
                             <v-divider :dark="item.owner.id === currentUser.id"></v-divider>
                         </template>
                     </v-list>
-                    <infinite-loading :key="infinityKey" @infinite="infiniteHandler" :identifier="infiniteId" :direction="aDirection" force-use-infinite-wrapper="#messagesScroller" :distance="0">
+                    <infinite-loading :key="infinityKey" @infinite="infiniteHandler" :identifier="infiniteId" :direction="aDirection" force-use-infinite-wrapper="#messagesScroller" :distance="aDistance">
                         <template slot="no-more"><span/></template>
                         <template slot="no-results">No more messages</template>
                     </infinite-loading>
@@ -65,6 +65,7 @@
     import MessageItem from "./MessageItem";
     // import 'splitpanes/dist/splitpanes.css';
     import debounce from "lodash/debounce";
+    import throttle from "lodash/throttle";
 
 
     const default2 = [80, 20];
@@ -72,6 +73,9 @@
 
     const directionTop = 'top';
     const directionBottom = 'bottom';
+
+    const maxItemsLength = 200;
+    const reduceToLength = 100;
 
     const calcSplitpanesHeight = () => {
         const appBarHeight = parseInt(document.getElementById("myAppBar").style.height.replace('px', ''));
@@ -93,9 +97,16 @@
                 splitpanesHeight: 0,
                 aDirection: directionTop,
                 infinityKey: 1,
+                scrollerDiv: null,
+                scrollerProbeCurrent: 0,
+                scrollerProbePrevious: 0,
+                forbidChangeScrollDirection: false
             }
         },
         computed: {
+            aDistance() {
+                return this.isTopDirection() ? 0 : 100;
+            },
             chatId() {
                 return this.$route.params.id
             },
@@ -142,17 +153,30 @@
             },
         },
         methods: {
+            onScroll(e) {
+                this.scrollerProbePrevious = this.scrollerProbeCurrent;
+                this.scrollerProbeCurrent = this.scrollerDiv.scrollTop;
+                console.log("onScroll prev=", this.scrollerProbePrevious, "cur=", this.scrollerProbeCurrent);
+
+                if (!this.forbidChangeScrollDirection) {
+                    Vue.nextTick(() => {
+                        this.switchDirection();
+                    })
+                }
+            },
             isTopDirection() {
                 return this.aDirection === directionTop
             },
             switchDirection() {
-                if (this.isTopDirection()) {
+                if (this.scrollerProbeCurrent > this.scrollerProbePrevious && this.isTopDirection()) {
                     this.aDirection = directionBottom;
-                } else {
+                    this.infinityKey++;
+                    console.log("Infinity scrolling direction has been changed to bottom");
+                } else if (this.scrollerProbePrevious > this.scrollerProbeCurrent && !this.isTopDirection()) {
                     this.aDirection = directionTop;
+                    this.infinityKey++;
+                    console.log("Infinity scrolling direction has been changed to top");
                 }
-                this.infinityKey++;
-                console.log("Infinity scrolling direction has been changed to ", this.aDirection);
             },
             getStored() {
                 const mbItem = this.isAllowedVideo() ? localStorage.getItem('3panels') : localStorage.getItem('2panels');
@@ -251,18 +275,7 @@
                         } else {
                             this.items = this.items.concat(list);
                         }
-                        const maxItemsLength = 200;
-                        const reduceToLength = 100;
-                        if (this.items.length > maxItemsLength) {
-                            setTimeout(() => {
-                                console.log("Reducing to", maxItemsLength);
-                                if (this.isTopDirection()) {
-                                    this.items = this.items.slice(0, reduceToLength);
-                                } else {
-                                    this.items = this.items.slice(-reduceToLength);
-                                }
-                            }, 1);
-                        }
+                        this.reduceListIfNeed();
                         return true;
                     } else {
                         return false
@@ -272,13 +285,23 @@
                         $state?.loaded();
                     } else {
                         $state?.complete();
-                        Vue.nextTick(() => {
-                            this.switchDirection();
-                        })
                     }
                 })
             },
-
+            reduceListIfNeed() {
+                if (this.items.length > maxItemsLength) {
+                    this.forbidChangeScrollDirection = true;
+                    setTimeout(() => {
+                        console.log("Reducing to", maxItemsLength);
+                        if (this.isTopDirection()) {
+                            this.items = this.items.slice(0, reduceToLength);
+                        } else {
+                            this.items = this.items.slice(-reduceToLength);
+                        }
+                        this.forbidChangeScrollDirection = false;
+                    }, 1);
+                }
+            },
             onNewMessage(dto) {
                 if (dto.chatId == this.chatId) {
                     const wasScrolled = this.isScrolledToBottom();
@@ -306,18 +329,15 @@
             },
             scrollDown() {
                 Vue.nextTick(() => {
-                    const myDiv = document.getElementById("messagesScroller");
-                    console.log("myDiv.scrollTop", myDiv.scrollTop, "myDiv.scrollHeight", myDiv.scrollHeight);
-                    myDiv.scrollTop = myDiv.scrollHeight;
+                    console.log("myDiv.scrollTop", this.scrollerDiv.scrollTop, "myDiv.scrollHeight", this.scrollerDiv.scrollHeight);
+                    this.scrollerDiv.scrollTop = this.scrollerDiv.scrollHeight;
                 });
             },
             isScrolledToBottom() {
-                const myDiv = document.getElementById("messagesScroller");
-                return myDiv.scrollHeight - myDiv.scrollTop === myDiv.clientHeight
+                return this.scrollerDiv.scrollHeight - this.scrollerDiv.scrollTop === this.scrollerDiv.clientHeight
             },
             isScrolledToTop() {
-                const myDiv = document.getElementById("messagesScroller");
-                return myDiv.scrollTop === 0
+                return this.scrollerDiv.scrollTop === 0
             },
             getInfo() {
                 return axios.get(`/api/chat/${this.chatId}`).then(({data}) => {
@@ -410,6 +430,7 @@
         },
         created() {
             this.onResizedListener = debounce(this.onResizedListener, 200, {leading:true, trailing:true});
+            this.onScroll = throttle(this.onScroll, 200);
         },
         mounted() {
             this.splitpanesHeight = calcSplitpanesHeight();
@@ -440,6 +461,8 @@
             bus.$on(VIDEO_CALL_KICKED, this.onVideoCallKicked);
             bus.$on(REFRESH_ON_WEBSOCKET_RESTORED, this.onWsRestoredRefresh);
             bus.$on(VIDEO_CALL_CHANGED, this.onVideoCallChanged);
+
+            this.scrollerDiv = document.getElementById("messagesScroller");
         },
         beforeDestroy() {
             window.removeEventListener('resize', this.onResizedListener);
