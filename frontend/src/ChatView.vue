@@ -8,14 +8,13 @@
             </pane>
             <pane v-bind:size="messagesSize">
                 <DynamicScroller
-                    v-if="currentUser"
                     ref="scroller"
                     :items="items"
                     :min-item-size="54"
                     id="messagesScroller"
                     style="overflow-y: auto; height: 100%"
                 >
-                    <template v-slot="{ item, index, active }">
+                    <template v-slot="{ item, index, active }" v-if="currentUser">
                         <DynamicScrollerItem
                             :item="item"
                             :active="active"
@@ -151,6 +150,9 @@ export default {
         }
     },
     methods: {
+        onScroll(e) {
+            console.log("On scroll", e);
+        },
         getStored() {
             const mbItem = this.isAllowedVideo() ? localStorage.getItem('3panels') : localStorage.getItem('2panels');
             if (!mbItem) {
@@ -282,6 +284,10 @@ export default {
             const myDiv = document.getElementById("messagesScroller");
             return myDiv.scrollHeight - myDiv.scrollTop === myDiv.clientHeight
         },
+        isScrolledToTop() {
+            const myDiv = document.getElementById("messagesScroller");
+            return myDiv.scrollTop === 0
+        },
         getInfo() {
             return axios.get(`/api/chat/${this.chatId}`).then(({data}) => {
                 console.log("Got info about chat in ChatView, chatId=", this.chatId, data);
@@ -403,6 +409,18 @@ export default {
         bus.$on(VIDEO_CALL_KICKED, this.onVideoCallKicked);
         bus.$on(REFRESH_ON_WEBSOCKET_RESTORED, this.onWsRestoredRefresh);
         bus.$on(VIDEO_CALL_CHANGED, this.onVideoCallChanged);
+
+        // TODO use Vue.extend
+        const superHandleMethod = this.$refs.scroller.$refs.scroller.handleScroll;
+        this.$refs.scroller.$refs.scroller.handleScroll = (e) => {
+            //console.log("before original handle", e);
+            superHandleMethod(e);
+            //console.log("after original handle");
+            if (this.isScrolledToTop()) {
+                console.log("On top", this.isScrolledToTop());
+                this.infiniteHandler();
+            }
+        }
 
         this.infiniteHandler();
     },
