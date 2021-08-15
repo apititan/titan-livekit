@@ -100,31 +100,37 @@ func (e *ErrorNoAccess) Error() string { return "No access" }
 type errorInternal struct {}
 func (e *errorInternal) Error() string { return "Internal error" }
 
-func (h *ExtendedService) UserByStreamId(chatId int64, interestingStreamId string, behalfUserId int64) (*dto.StoreNotifyDto, error) {
+func (h *ExtendedService) UserByStreamId(chatId int64, interestingStreamId string, behalfUserId int64) (*dto.StoreNotifyDto, []string, error) {
 	if ok, err := h.CheckAccess(behalfUserId, chatId); err != nil {
-		return nil, &errorInternal{}
+		return nil, nil, &errorInternal{}
 	} else if !ok {
-		return nil, &ErrorNoAccess{}
+		return nil, nil, &ErrorNoAccess{}
 	}
+
+	var sessionInfoDto *dto.StoreNotifyDto
+	var otherStreamIds = []string{}
 
 	session := h.getSessionWithoutCreatingAnew(chatId)
 	if session != nil {
 		for _, peer := range session.Peers() {
 			if h.peerIsAlive(peer) {
 				if pwm := h.getPeerMetadataByStreamId(chatId, interestingStreamId); pwm != nil && pwm.ExtendedPeerInfo != nil && pwm.ExtendedPeerInfo.streamId != "" {
-					d := dto.StoreNotifyDto{
+					sessionInfoDto = &dto.StoreNotifyDto{
 						PeerId:    pwm.ExtendedPeerInfo.peerId,
 						StreamId:  pwm.ExtendedPeerInfo.streamId,
 						Login:     pwm.ExtendedPeerInfo.login,
 						VideoMute: pwm.ExtendedPeerInfo.videoMute,
 						AudioMute: pwm.ExtendedPeerInfo.audioMute,
 					}
-					return &d, nil
+				} else {
+					if eci := h.getExtendedConnectionInfo(peer); eci != nil {
+						otherStreamIds = append(otherStreamIds, eci.streamId)
+					}
 				}
 			}
 		}
 	}
-	return nil, nil
+	return sessionInfoDto, otherStreamIds, nil
 }
 
 // sent to chat through RabbitMQ
@@ -270,14 +276,16 @@ func (h *ExtendedService) GetPeerByPeerId(chatId int64, peerId string) sfu.Peer 
 	return nil
 }
 
-func (h *ExtendedService) KickUser(chatId, userId int64) error {
+func (h *ExtendedService) KickUser(chatId, userId int64, silent bool) error {
 	logger.Info("Invoked kick", "chat_id", chatId, "user_id", userId)
 
 	metadatas := h.getPeerMetadatas(chatId, userId)
 	for _, metadata := range metadatas {
 		metadata.Peer.Close()
 		metadata.Session.RemovePeer(metadata.Peer)
-		h.Notify(chatId, nil)
+		if !silent {
+			h.Notify(chatId, nil)
+		}
 	}
 
 	return nil
