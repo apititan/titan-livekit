@@ -114,16 +114,18 @@ func (h *ExtendedService) UserByStreamId(chatId int64, interestingStreamId strin
 	if session != nil {
 		for _, peer := range session.Peers() {
 			if h.peerIsAlive(peer) {
-				if pwm := h.getPeerMetadataByStreamId(chatId, interestingStreamId); pwm != nil && pwm.ExtendedPeerInfo != nil && pwm.ExtendedPeerInfo.streamId != "" {
-					sessionInfoDto = &dto.StoreNotifyDto{
-						PeerId:    pwm.ExtendedPeerInfo.peerId,
-						StreamId:  pwm.ExtendedPeerInfo.streamId,
-						Login:     pwm.ExtendedPeerInfo.login,
-						VideoMute: pwm.ExtendedPeerInfo.videoMute,
-						AudioMute: pwm.ExtendedPeerInfo.audioMute,
-					}
-				} else {
-					if eci := h.getExtendedConnectionInfo(peer); eci != nil {
+				eci := h.getExtendedConnectionInfo(peer)
+
+				if eci != nil && eci.streamId != "" {
+					if interestingStreamId == eci.streamId {
+						sessionInfoDto = &dto.StoreNotifyDto{
+							PeerId:    eci.peerId,
+							StreamId:  eci.streamId,
+							Login:     eci.login,
+							VideoMute: eci.videoMute,
+							AudioMute: eci.audioMute,
+						}
+					} else {
 						otherStreamIds = append(otherStreamIds, eci.streamId)
 					}
 				}
@@ -243,24 +245,6 @@ func (h *ExtendedService) getPeerMetadatas(chatId, userId int64) []peerWithMetad
 		}
 	}
 	return result
-}
-
-
-func (h *ExtendedService) getPeerMetadataByStreamId(chatId int64, streamId string) *peerWithMetadata {
-	session := h.getSessionWithoutCreatingAnew(chatId)// ChatVideo.vue
-	if session == nil {
-		return nil
-	}
-	for _, peerF := range session.Peers() {
-		if eci := h.getExtendedConnectionInfo(peerF); eci != nil && eci.streamId == streamId {
-			return &peerWithMetadata{
-				peerF,
-				eci,
-				session,
-			}
-		}
-	}
-	return nil
 }
 
 func (h *ExtendedService) GetPeerByPeerId(chatId int64, peerId string) sfu.Peer {
