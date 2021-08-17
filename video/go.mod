@@ -16,4 +16,4 @@ require (
 	go.uber.org/atomic v1.7.0
 )
 
-go 1.16
+go 1.17
