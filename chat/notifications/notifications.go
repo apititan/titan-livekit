@@ -103,6 +103,7 @@ func chatNotifyCommon(userIds []int64, not *notifictionsImpl, c echo.Context, ne
 		copied.CanLeave = null.BoolFrom(!admin && !copied.IsTetATet)
 		copied.UnreadMessages = unreadMessages
 		copied.CanVideoKick = admin
+		copied.CanAudioMute = admin
 		copied.CanChangeChatAdmins = admin && !copied.IsTetATet
 		//copied.CanBroadcast = admin
 		for _, participant := range copied.Participants {
