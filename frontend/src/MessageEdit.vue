@@ -63,6 +63,12 @@
     import {GET_USER} from "./store";
     import 'quill/dist/quill.core.css'
     import 'quill/dist/quill.snow.css'
+    import VQuill from 'quill'
+    // import Quill from 'quill';
+    // Quill.register('modules/resize', QuillResize);
+    import QuillResize from 'quill-resize-module';
+    VQuill.register('modules/resize', QuillResize);
+
     import Editor from "./Editor";
     const DragAndDropModule = require('quill-drag-and-drop-module');
 
@@ -115,6 +121,23 @@
                           onDrop(file) {
                               return embedUploadFunction(chatIdRef, file).catch(function(err) {return false;});
                           },
+                        },
+
+                        resize: {
+                            // ...
+                            modules: [ 'Resize', 'DisplaySize', 'Toolbar' ],
+                            // set parchment key to enable resize module
+                            parchment: {
+                                image: {
+                                    attribute: ['width', 'height'],  // ['width', 'height']
+                                    limit: {
+                                        minWidth: 200,
+                                        maxWidth: 600,
+                                        minHeight: 200,
+                                        maxHeight: 450,
+                                    }
+                                }
+                            },
                         }
                     },
                     placeholder: 'Press Ctrl + Enter to send, Esc to clear',
@@ -308,10 +331,10 @@ $mobileWidth = 800px
 
 .ql-editor {
     padding 10px 8px
-    img {
-        max-width 100% !important
-        max-height 100% !important
-    }
+    //img {
+    //    max-width 100% !important
+    //    max-height 100% !important
+    //}
 }
 
 .ql-toolbar.ql-snow {
