@@ -269,6 +269,7 @@
                         reverse: this.isTopDirection()
                     },
                 }).then(({data}) => {
+                    this.forbidChangeScrollDirection = true;
                     const list = data;
                     if (list.length) {
                         if (this.isTopDirection()) {
@@ -293,16 +294,21 @@
             },
             reduceListIfNeed() {
                 if (this.items.length > maxItemsLength) {
-                    this.forbidChangeScrollDirection = true;
-                    setTimeout(() => {
-                        console.log("Reducing to", maxItemsLength);
-                        if (this.isTopDirection()) {
-                            this.items = this.items.slice(0, reduceToLength);
-                        } else {
-                            this.items = this.items.slice(-reduceToLength);
+                    console.log("Reducing to", maxItemsLength);
+                    if (this.isTopDirection()) {
+                        //this.items = this.items.slice(0, reduceToLength);
+                        let i = this.items.length;
+                        while (i-- > reduceToLength) {
+                            this.items.splice(i, 1);
                         }
-                        this.forbidChangeScrollDirection = false;
-                    }, 1);
+                    } else {
+                        //this.items = this.items.slice(-reduceToLength);
+                        let i = 0;
+                        let cs = this.items.length;
+                        while (i++ < cs - reduceToLength) {
+                            this.items.splice(i, 1);
+                        }
+                    }
                 }
             },
             onNewMessage(dto) {
