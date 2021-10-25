@@ -60,9 +60,8 @@ func NewExtendedService(
 	return handler
 }
 
-func (h *ExtendedService) StoreToIndex(peer0 sfu.Peer, userId int64, streamId, login string, videoMute, audioMute bool) {
-	var peerId string = peer0.ID()
-	logger.Info("Storing peer to map", "peer_id", peer0.ID(), "user_id", userId, "stream_id", streamId, "login", login, "video_mute", videoMute, "audio_mute", audioMute)
+func (h *ExtendedService) StoreToIndex(peerId string, userId int64, streamId, login string, videoMute, audioMute bool) {
+	logger.Info("Storing peer to map", "peer_id", peerId, "user_id", userId, "stream_id", streamId, "login", login, "video_mute", videoMute, "audio_mute", audioMute)
 	h.peerUserIdIndex.Lock()
 	defer h.peerUserIdIndex.Unlock()
 	h.peerUserIdIndex.connectionWithData[peerId] = ExtendedPeerInfo{

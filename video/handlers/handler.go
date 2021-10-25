@@ -358,6 +358,17 @@ func (p *JsonRpcExtendedHandler) Handle(ctx context.Context, conn *jsonrpc2.Conn
 	}
 
 	switch req.Method {
+	case "join":{
+		p.JSONSignal.Handle(ctx, conn, req)
+		var join server.Join // тут может быть кастомная структура и в ней - streamId из браузера
+		err := json.Unmarshal(*req.Params, &join)
+		if err != nil {
+			p.Logger.Error(err, "connect: error parsing offer")
+			replyError(err)
+			break
+		}
+		p.service.StoreToIndex(join.UID, fromContext.userId, "", "", false, false)
+	}
 	case "userByStreamId":
 		var userByStreamId UserByStreamId
 		err := json.Unmarshal(*req.Params, &userByStreamId)
@@ -387,7 +398,7 @@ func (p *JsonRpcExtendedHandler) Handle(ctx context.Context, conn *jsonrpc2.Conn
 			break
 		}
 		if sfuPeer := p.service.GetPeerByPeerId(fromContext.chatId, bodyStruct.PeerId); sfuPeer != nil {
-			p.service.StoreToIndex(sfuPeer, fromContext.userId, bodyStruct.StreamId, bodyStruct.Login, bodyStruct.VideoMute, bodyStruct.AudioMute)
+			p.service.StoreToIndex(sfuPeer.ID(), fromContext.userId, bodyStruct.StreamId, bodyStruct.Login, bodyStruct.VideoMute, bodyStruct.AudioMute)
 			if err := p.service.Notify(fromContext.chatId, &bodyStruct); err != nil {
 				p.Logger.Error(err, "error during sending notification")
 			}
