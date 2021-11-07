@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.nkonev.aaa.Constants;
 import com.github.nkonev.aaa.security.checks.AaaPostAuthenticationChecks;
 import com.github.nkonev.aaa.security.checks.AaaPreAuthenticationChecks;
-import com.github.nkonev.aaa.security.converter.BearerOAuth2AccessTokenResponseConverter;
 import com.github.nkonev.aaa.dto.UserRole;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -161,7 +160,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> accessTokenResponseClient() {
         OAuth2AccessTokenResponseHttpMessageConverter oAuth2AccessTokenResponseHttpMessageConverter = new OAuth2AccessTokenResponseHttpMessageConverter();
-        oAuth2AccessTokenResponseHttpMessageConverter.setTokenResponseConverter(new BearerOAuth2AccessTokenResponseConverter());
         RestTemplate restTemplate = new RestTemplate(Arrays.asList(
                 new FormHttpMessageConverter(),
                 oAuth2AccessTokenResponseHttpMessageConverter
