@@ -33,6 +33,7 @@ type ChatConfig struct {
 type ChatUrlConfig struct {
 	Base string `mapstructure:"base"`
 	Access string `mapstructure:"access"`
+	IsAdmin string `mapstructure:"isAdmin"`
 }
 
 type HttpServerConfig struct {

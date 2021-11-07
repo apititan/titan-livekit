@@ -139,6 +139,9 @@ func (h *Handler) SfuHandler(w http.ResponseWriter, r *http.Request) {
 	defer p.Close()
 
 	jc := jsonrpc2.NewConn(r.Context(), websocketjsonrpc2.NewObjectStream(c), je)
+	h.service.AddToJsonRpcIndex(userId, jc)
+	defer h.service.RemoveFromJsonRpcIndex(userId, jc)
+
 	<-jc.DisconnectNotify()
 }
 
@@ -323,6 +326,34 @@ func (h *Handler) Kick(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 }
+
+func (h *Handler) ForceMute(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	chatId, behalfUserId, err := parseChatIdAndUserId(vars["chatId"], r.Header.Get("X-Auth-UserId")) // behalf this userId
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	userToMuteId, err := utils.ParseInt64(r.URL.Query().Get("userId"))
+	if err != nil {
+		logger.Error(err, "Failed during parse chat id")
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	admin, err := h.service.IsAdmin(behalfUserId, chatId)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if !admin {
+		logger.Info("You have no access to this chat", "user_id", behalfUserId, "chat_id", chatId)
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	h.service.NotifyUserAboutForceMute(chatId, userToMuteId)
+}
+
 
 func parseChatIdAndUserId(chatId, userId string) (int64, int64, error) {
 	chatIdInt64, err := utils.ParseInt64(chatId)

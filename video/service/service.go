@@ -8,6 +8,7 @@ import (
 	log "github.com/pion/ion-sfu/pkg/logger"
 	"github.com/pion/ion-sfu/pkg/sfu"
 	"github.com/pion/webrtc/v3"
+	"github.com/sourcegraph/jsonrpc2"
 	"net/http"
 	"nkonev.name/video/config"
 	"nkonev.name/video/dto"
@@ -21,6 +22,7 @@ var logger = log.New()
 type ExtendedService struct {
 	sfu             *sfu.SFU
 	peerUserIdIndex connectionsLockableMap
+	userConnectionsIndex userConnectionsMap
 	rabbitMqPublisher *producer.RabbitPublisher
 	conf            *config.ExtendedConfig
 	client          *http.Client
@@ -43,6 +45,13 @@ type connectionsLockableMap struct {
 	connectionWithData
 }
 
+type userConnectionsList []*jsonrpc2.Conn
+type mapUserConnectionsList map[int64]userConnectionsList
+type userConnectionsMap struct {
+	sync.RWMutex
+	mapUserConnectionsList
+}
+
 func NewExtendedService(
 	sfu *sfu.SFU,
 	conf *config.ExtendedConfig,
@@ -55,6 +64,10 @@ func NewExtendedService(
 		peerUserIdIndex: connectionsLockableMap{
 			RWMutex:            sync.RWMutex{},
 			connectionWithData: connectionWithData{},
+		},
+		userConnectionsIndex: userConnectionsMap {
+			RWMutex:            sync.RWMutex{},
+			mapUserConnectionsList: mapUserConnectionsList{},
 		},
 		rabbitMqPublisher: rabbitMqPublisher,
 		client:   client,
@@ -227,6 +240,10 @@ func (h *ExtendedService) Notify(chatId int64, data *dto.StoreNotifyDto) error {
 	return h.rabbitMqPublisher.Publish(marshal)
 }
 
+func (h *ExtendedService) NotifyUserAboutForceMute(chatId int64, userId int64) {
+
+}
+
 func (h *ExtendedService) peerIsAlive(peer sfu.Peer) bool {
 	if peer == nil {
 		return false
@@ -237,6 +254,28 @@ func (h *ExtendedService) peerIsAlive(peer sfu.Peer) bool {
 func (h *ExtendedService) CheckAccess(userId int64, chatId int64) (bool, error) {
 	url0 := h.conf.ChatConfig.ChatUrlConfig.Base
 	url1 := h.conf.ChatConfig.ChatUrlConfig.Access
+
+	url := fmt.Sprintf("%v%v?userId=%v&chatId=%v", url0, url1, userId, chatId)
+	response, err := h.client.Get(url)
+	if err != nil {
+		logger.Error(err, "Transport error during checking access")
+		return false, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode == http.StatusOK {
+		return true, nil
+	} else if response.StatusCode == http.StatusUnauthorized {
+		return false, nil
+	} else {
+		err := errors.New("Unexpected status on checkAccess")
+		logger.Error(err, "Unexpected status on checkAccess", "httpCode", response.StatusCode)
+		return false, err
+	}
+}
+
+func (h *ExtendedService) IsAdmin(userId int64, chatId int64) (bool, error) {
+	url0 := h.conf.ChatConfig.ChatUrlConfig.Base
+	url1 := h.conf.ChatConfig.ChatUrlConfig.IsAdmin
 
 	url := fmt.Sprintf("%v%v?userId=%v&chatId=%v", url0, url1, userId, chatId)
 	response, err := h.client.Get(url)
@@ -379,3 +418,10 @@ func (h *ExtendedService) Schedule() *chan struct{} {
 	return &quit
 }
 
+func (h *ExtendedService) AddToJsonRpcIndex(userId int64, jc *jsonrpc2.Conn) {
+
+}
+
+func (h *ExtendedService) RemoveFromJsonRpcIndex(userId int64, jc *jsonrpc2.Conn) {
+
+}
