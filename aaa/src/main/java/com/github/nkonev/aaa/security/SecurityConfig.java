@@ -121,7 +121,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/favicon.ico", "/static/**", Constants.Urls.API+"/**").permitAll();
         http.authorizeRequests()
                 .antMatchers(Constants.Urls.API+ Constants.Urls.ADMIN+"/**").hasAuthority(UserRole.ROLE_ADMIN.name());
-        // TODO set proper redirect url(:8060) in .json
         http.authorizeRequests()
                 .antMatchers("/api2/**").authenticated();
 
