@@ -121,35 +121,39 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/favicon.ico", "/static/**", Constants.Urls.API+"/**").permitAll();
         http.authorizeRequests()
                 .antMatchers(Constants.Urls.API+ Constants.Urls.ADMIN+"/**").hasAuthority(UserRole.ROLE_ADMIN.name());
+        // TODO set proper redirect url(:8060) in .json
+        http.authorizeRequests()
+                .antMatchers("/api2/**").authenticated();
+
         http.authorizeRequests().requestMatchers(EndpointRequest.toAnyEndpoint()).permitAll();
 
         http.csrf()
                 .csrfTokenRepository(csrfTokenRepository());
-        http.exceptionHandling()
-                .authenticationEntryPoint(authenticationEntryPoint);
+//        http.exceptionHandling()
+//                .authenticationEntryPoint(authenticationEntryPoint);
 
-        http.formLogin()
-                .loginPage(API_LOGIN_URL).usernameParameter(USERNAME_PARAMETER).passwordParameter(PASSWORD_PARAMETER).permitAll()
-                .successHandler(authenticationSuccessHandler)
-                .failureHandler(authenticationFailureHandler)
+//        http.formLogin()
+//                .loginPage(API_LOGIN_URL).usernameParameter(USERNAME_PARAMETER).passwordParameter(PASSWORD_PARAMETER).permitAll()
+//                .successHandler(authenticationSuccessHandler)
+//                .failureHandler(authenticationFailureHandler)
 
-        .and().logout().logoutUrl(API_LOGOUT_URL).logoutSuccessHandler(authenticationLogoutSuccessHandler).permitAll();
+//        .and().logout().logoutUrl(API_LOGOUT_URL).logoutSuccessHandler(authenticationLogoutSuccessHandler).permitAll();
 
         http.oauth2Login(oauth2Login ->
                 oauth2Login
                         .authorizedClientRepository(noOpAuthorizedClientRepository)
-                        .userInfoEndpoint(userInfoEndpoint ->
-                                userInfoEndpoint.userService(aaaOAuth2LoginUserService)
-                                        .oidcUserService(aaaOAuth2AuthorizationCodeUserService)
-                        )
-                        .authorizationEndpoint(authorizationEndpointConfig -> {
-                            authorizationEndpointConfig.authorizationRequestResolver(oAuth2AuthorizationRequestResolver());
-                            authorizationEndpointConfig.baseUri(API_LOGIN_OAUTH);
-                        })
+//                        .userInfoEndpoint(userInfoEndpoint ->
+//                                userInfoEndpoint.userService(aaaOAuth2LoginUserService)
+//                                        .oidcUserService(aaaOAuth2AuthorizationCodeUserService)
+//                        )
+//                        .authorizationEndpoint(authorizationEndpointConfig -> {
+//                            authorizationEndpointConfig.authorizationRequestResolver(oAuth2AuthorizationRequestResolver());
+//                            authorizationEndpointConfig.baseUri(API_LOGIN_OAUTH);
+//                        })
 
                         .successHandler(new OAuth2AuthenticationSuccessHandler())
-                        .failureHandler(OAuth2ExceptionHandler)
-                        .redirectionEndpoint(redirectionEndpointConfig -> redirectionEndpointConfig.baseUri(AUTHORIZATION_RESPONSE_BASE_URI))
+//                        .failureHandler(OAuth2ExceptionHandler)
+//                        .redirectionEndpoint(redirectionEndpointConfig -> redirectionEndpointConfig.baseUri(AUTHORIZATION_RESPONSE_BASE_URI))
                         .tokenEndpoint(tokenEndpointConfig -> {
                             tokenEndpointConfig.accessTokenResponseClient(this.accessTokenResponseClient());
                         })

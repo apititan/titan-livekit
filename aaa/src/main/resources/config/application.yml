@@ -148,6 +148,8 @@ spring.security:
             client-id: 987654321
             client-secret: your-app-client-secret
             redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
+          keycloak:
+            client-id: my_client
         provider:
           vkontakte:
             authorization-uri: https://oauth.vk.com/authorize
@@ -157,3 +159,5 @@ spring.security:
             user-name-attribute: response
           facebook:
             user-info-uri: "https://graph.facebook.com/me?fields=id,name,picture"
+          keycloak:
+            issuer-uri: http://localhost:8484/auth/realms/my_realm
