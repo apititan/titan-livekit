@@ -292,3 +292,8 @@ docker cp $(docker ps --format {{.Names}} | grep keycloak):/tmp/export.json ./ex
 ## 2. Next find "users" JSON array. Then find required user's document by their name.
 
 ## 3. Append user's document to existing realm-export.json under "users" array.
+
+## Known issues
+Problem: Keycloak renders 'Invalid parameter: redirect_uri'
+Solution: Set proper [redirect url](https://stackoverflow.com/questions/45352880/keycloak-invalid-parameter-redirect-uri)
+
