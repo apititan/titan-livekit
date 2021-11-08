@@ -45,7 +45,6 @@
         MESSAGE_BROADCAST,
         REFRESH_ON_WEBSOCKET_RESTORED,
     } from "./bus";
-    import MessageEdit from "./MessageEdit";
     import {chat_list_name, chat_name, videochat_name} from "./routes";
     import ChatVideo from "./ChatVideo";
     import {getData, getProperData} from "./centrifugeConnection";
@@ -62,7 +61,6 @@
     // import 'splitpanes/dist/splitpanes.css';
     import debounce from "lodash/debounce";
     import throttle from "lodash/throttle";
-
 
     const default2 = [80, 20];
     const default3 = [30, 50, 20];
@@ -517,7 +515,7 @@
         },
         components: {
             InfiniteLoading,
-            MessageEdit,
+            MessageEdit: () => import("./MessageEdit"),
             ChatVideo,
             Splitpanes, Pane,
             MessageItem
