@@ -150,6 +150,7 @@ spring.security:
             redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
           keycloak:
             client-id: my_client
+            redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
         provider:
           vkontakte:
             authorization-uri: https://oauth.vk.com/authorize

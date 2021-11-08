@@ -59,6 +59,7 @@
                         <v-btn class="mr-2 mb-2 c-btn-vk" :disabled="disable" :loading="loadingVk" min-width="80px" @click="loginVk()"><font-awesome-icon :icon="{ prefix: 'fab', iconName: 'vk'}" :size="'2x'"></font-awesome-icon></v-btn>
                         <v-btn class="mr-2 mb-2 c-btn-fb" :disabled="disable" :loading="loadingFb" min-width="80px" @click="loginFb()"><font-awesome-icon :icon="{ prefix: 'fab', iconName: 'facebook' }" :size="'2x'"></font-awesome-icon></v-btn>
                         <v-btn class="mr-2 mb-2 c-btn-google" :disabled="disable" :loading="loadingGoogle" min-width="80px" @click="loginGoogle()"><font-awesome-icon :icon="{ prefix: 'fab', iconName: 'google' }" :size="'2x'"></font-awesome-icon></v-btn>
+                        <v-btn class="mr-2 mb-2 c-btn-oauth2" :disabled="disable" :loading="loadingOauth" min-width="80px" @click="loginOauth()"><font-awesome-icon :icon="{ prefix: 'fa', iconName: 'key' }" :size="'2x'"></font-awesome-icon></v-btn>
                     </v-form>
                 </v-card-text>
 
@@ -86,6 +87,7 @@
                 loadingVk: false,
                 loadingFb: false,
                 loadingGoogle: false,
+                loadingOauth: false,
 
                 valid: true,
                 username: '',
@@ -128,7 +130,11 @@
                 this.disable = true;
                 window.location.href = '/api/login/oauth2/google';
             },
-
+            loginOauth() {
+                this.loadingOauth = true;
+                this.disable = true;
+                window.location.href = '/api/login/oauth2/keycloak';
+            },
             validate () {
                 return this.$refs.form.validate()
             },
