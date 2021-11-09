@@ -308,7 +308,7 @@ public class UserProfileController {
         aaaUserDetailsService.refreshUserDetails(userAccount);
     }
 
-    @GetMapping(Constants.Urls.API + "/providers")
+    @GetMapping(Constants.Urls.API + "/oauth2/providers")
     public Set<String> availableOauth2Providers() {
         return ofNullable(oAuth2ClientProperties.getRegistration())
                 .flatMap(stringRegistrationMap -> stringRegistrationMap.keySet().stream())
