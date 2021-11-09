@@ -21,7 +21,7 @@ public class AaaOAuth2LoginUserService implements OAuth2UserService<OAuth2UserRe
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-        String clientName = userRequest.getClientRegistration().getClientName();
+        String clientName = userRequest.getClientRegistration().getRegistrationId();
         switch (clientName) {
             case OAuth2Providers.VKONTAKTE:
                 return vkontakteOAuth2UserService.loadUser(userRequest);
