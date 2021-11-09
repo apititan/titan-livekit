@@ -685,7 +685,8 @@
       "secret": "**********",
       "redirectUris": [
         "http://localhost:8081/*",
-        "http://localhost:8060/*"
+        "http://localhost:8060/*",
+        "http://localhost:9080/*"
       ],
       "webOrigins": [],
       "notBefore": 0,
@@ -843,7 +844,8 @@
       "secret": "**********",
       "redirectUris": [
         "http://localhost:8081/*",
-        "http://localhost:8060/*"
+        "http://localhost:8060/*",
+        "http://localhost:9080/*"
       ],
       "webOrigins": [],
       "notBefore": 0,

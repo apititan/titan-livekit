@@ -1,6 +1,7 @@
 package com.github.nkonev.aaa.it;
 
 import com.gargoylesoftware.htmlunit.WebResponse;
+import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.github.nkonev.aaa.AbstractHtmlUnitRunner;
@@ -8,6 +9,7 @@ import com.github.nkonev.aaa.Constants;
 import com.github.nkonev.aaa.FailoverUtils;
 import com.github.nkonev.aaa.entity.jdbc.UserAccount;
 import com.github.nkonev.aaa.security.OAuth2Providers;
+import org.checkerframework.checker.units.qual.K;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,6 +51,10 @@ public class UserProfileOauth2Test extends AbstractHtmlUnitRunner {
         currentPage = currentPage.getElementById("a-google").click();
     }
 
+    private void clickKeycloak() throws IOException {
+        currentPage = currentPage.getElementById("a-keycloak").click();
+    }
+
     private void clickLogout() throws IOException {
         currentPage.getElementById("btn-logout").click();
     }
@@ -70,6 +76,22 @@ public class UserProfileOauth2Test extends AbstractHtmlUnitRunner {
             ((HtmlInput)currentPage.getElementById("username")).setValueAttribute(this.login);
             ((HtmlInput)currentPage.getElementById("password")).setValueAttribute(this.password);
             currentPage.getElementById("btn-login").click();
+        }
+    }
+
+    private class KeycloakLoginPage {
+        public KeycloakLoginPage(String login, String password) {
+            this.login = login;
+            this.password = password;
+        }
+
+        private String login;
+        private String password;
+
+        private void login() throws IOException {
+            ((HtmlInput)currentPage.querySelector("#kc-form-login input#username")).setValueAttribute(this.login);
+            ((HtmlInput)currentPage.querySelector("#kc-form-login input#password")).setValueAttribute(this.password);
+            ((HtmlInput)currentPage.querySelector("#kc-form-login input#kc-login")).click();
         }
     }
 
@@ -289,6 +311,45 @@ public class UserProfileOauth2Test extends AbstractHtmlUnitRunner {
             Assertions.assertEquals(countBeforeDelete-1, countAfter);
             return null;
         });
+    }
+
+
+    @Test
+    public void testKeycloakLoginAndUnbind() throws Exception {
+        openOauth2TestPage();
+
+        clickKeycloak();
+        KeycloakLoginPage klp = new KeycloakLoginPage(keycloakLogin, keycloakPassword);
+        klp.login();
+
+        UserAccount userAccount = userAccountRepository.findByUsername(keycloakLogin).orElseThrow();
+
+        Assertions.assertNotNull(userAccount.id());
+        Assertions.assertNull(userAccount.avatar());
+        Assertions.assertEquals(keycloakLogin, userAccount.username());
+        Assertions.assertEquals(keycloakId, userAccount.oauth2Identifiers().keycloakId());
+
+        final var keycloakUserNewPassword = "aPasswd"; // prev password is null
+        UserAccount savedUser = userAccountRepository.save(userAccount.withPassword(passwordEncoder.encode(keycloakUserNewPassword)));
+
+        final String bindDeleteUrl = "/" + OAuth2Providers.KEYCLOAK;
+
+        // programmatic login
+        SessionHolder userAliceSession = login(keycloakLogin, keycloakUserNewPassword);
+
+        // unbind facebook
+        RequestEntity myPostsRequest1 = RequestEntity
+                .delete(new URI(urlWithContextPath()+ Constants.Urls.API+Constants.Urls.PROFILE+bindDeleteUrl))
+                .header(HEADER_XSRF_TOKEN, userAliceSession.newXsrf)
+                .header(COOKIE, userAliceSession.getCookiesArray())
+                .build();
+        ResponseEntity<String> myPostsResponse1 = testRestTemplate.exchange(myPostsRequest1, String.class);
+        Assertions.assertEquals(200, myPostsResponse1.getStatusCodeValue());
+
+        // assert facebook is unbound - check database
+        UserAccount userAccountAfterDeleteFacebook = userAccountRepository.findByUsername(keycloakLogin).orElseThrow();
+        Assertions.assertNull(userAccountAfterDeleteFacebook.oauth2Identifiers().keycloakId());
+
     }
 
 }
