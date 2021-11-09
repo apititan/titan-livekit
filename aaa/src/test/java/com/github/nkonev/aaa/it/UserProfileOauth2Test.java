@@ -4,6 +4,7 @@ import com.gargoylesoftware.htmlunit.WebResponse;
 import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import com.gargoylesoftware.htmlunit.util.Cookie;
 import com.github.nkonev.aaa.AbstractHtmlUnitRunner;
 import com.github.nkonev.aaa.Constants;
 import com.github.nkonev.aaa.FailoverUtils;
@@ -91,7 +92,7 @@ public class UserProfileOauth2Test extends AbstractHtmlUnitRunner {
         private void login() throws IOException {
             ((HtmlInput)currentPage.querySelector("#kc-form-login input#username")).setValueAttribute(this.login);
             ((HtmlInput)currentPage.querySelector("#kc-form-login input#password")).setValueAttribute(this.password);
-            ((HtmlInput)currentPage.querySelector("#kc-form-login input#kc-login")).click();
+            currentPage = ((HtmlInput)currentPage.querySelector("#kc-form-login input#kc-login")).click();
         }
     }
 
@@ -329,19 +330,18 @@ public class UserProfileOauth2Test extends AbstractHtmlUnitRunner {
         Assertions.assertEquals(keycloakLogin, userAccount.username());
         Assertions.assertEquals(keycloakId, userAccount.oauth2Identifiers().keycloakId());
 
-        final var keycloakUserNewPassword = "aPasswd"; // prev password is null
-        UserAccount savedUser = userAccountRepository.save(userAccount.withPassword(passwordEncoder.encode(keycloakUserNewPassword)));
-
         final String bindDeleteUrl = "/" + OAuth2Providers.KEYCLOAK;
 
-        // programmatic login
-        SessionHolder userAliceSession = login(keycloakLogin, keycloakUserNewPassword);
+        currentPage = (HtmlPage) currentPage.refresh();
+        Cookie xsrf = webClient.getCookieManager().getCookie("XSRF-TOKEN");
+        String xsrfValue = xsrf.getValue();
+        Cookie session = webClient.getCookieManager().getCookie(getAuthCookieName());
 
-        // unbind facebook
+        // unbind keycloak
         RequestEntity myPostsRequest1 = RequestEntity
                 .delete(new URI(urlWithContextPath()+ Constants.Urls.API+Constants.Urls.PROFILE+bindDeleteUrl))
-                .header(HEADER_XSRF_TOKEN, userAliceSession.newXsrf)
-                .header(COOKIE, userAliceSession.getCookiesArray())
+                .header(HEADER_XSRF_TOKEN, xsrfValue)
+                .header(COOKIE, session.toString(), xsrf.toString())
                 .build();
         ResponseEntity<String> myPostsResponse1 = testRestTemplate.exchange(myPostsRequest1, String.class);
         Assertions.assertEquals(200, myPostsResponse1.getStatusCodeValue());
