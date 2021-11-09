@@ -346,7 +346,7 @@ public class UserProfileOauth2Test extends AbstractHtmlUnitRunner {
         ResponseEntity<String> myPostsResponse1 = testRestTemplate.exchange(myPostsRequest1, String.class);
         Assertions.assertEquals(200, myPostsResponse1.getStatusCodeValue());
 
-        // assert facebook is unbound - check database
+        // assert keycloak is unbound - check database
         UserAccount userAccountAfterDeleteFacebook = userAccountRepository.findByUsername(keycloakLogin).orElseThrow();
         Assertions.assertNull(userAccountAfterDeleteFacebook.oauth2Identifiers().keycloakId());
 
