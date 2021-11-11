@@ -16,7 +16,6 @@ import bus, {
     LOGGED_OUT,
     LOGGED_IN,
     VIDEO_CALL_INVITED,
-    VIDEO_CALL_KICKED,
     VIDEO_CALL_CHANGED,
 } from './bus';
 import store, {FETCH_AVAILABLE_OAUTH2_PROVIDERS, FETCH_USER_PROFILE, UNSET_USER} from './store'
@@ -115,9 +114,6 @@ vm = new Vue({
       } else if (getData(ctx).type === 'video_call_invitation') {
         const d = getProperData(ctx);
         bus.$emit(VIDEO_CALL_INVITED, d);
-      } else if (getData(ctx).type === 'video_kick') {
-        const d = getProperData(ctx);
-        bus.$emit(VIDEO_CALL_KICKED, d);
       } else if (getData(ctx).type === "video_call_changed") {
         const d = getProperData(ctx);
         bus.$emit(VIDEO_CALL_CHANGED, d);

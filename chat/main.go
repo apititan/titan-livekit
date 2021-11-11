@@ -171,7 +171,6 @@ func configureEcho(
 	e.DELETE("/internal/removeFileItem", mc.RemoveFileItem)
 
 	e.PUT("/chat/:id/video/invite", vh.NotifyAboutCallInvitation)
-	e.PUT("/chat/:id/video/kick", vh.Kick)
 
 	e.GET("/chat/online", sh.GetOnlineUsers)
 

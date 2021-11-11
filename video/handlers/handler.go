@@ -22,6 +22,7 @@ import (
 	"nkonev.name/video/service"
 	"nkonev.name/video/utils"
 	"strings"
+	"time"
 )
 
 //go:embed static
@@ -316,10 +317,9 @@ func (h *Handler) Kick(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	silent, err := utils.ParseBoolean(r.URL.Query().Get("silent"))
+	silent, _ := utils.ParseBoolean(r.URL.Query().Get("silent"))
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		logger.Info("Unable to read silent param, assuming false")
 	}
 
 	if h.service.KickUser(chatId, userToKickId, silent) != nil {
@@ -354,6 +354,27 @@ func (h *Handler) ForceMute(w http.ResponseWriter, r *http.Request) {
 	h.service.NotifyUserAboutForceMute(r.Context(), chatId, userToMuteId)
 }
 
+func (h *Handler) PublicKick(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	chatId, userToKickId, err := parseChatIdAndUserId(vars["chatId"], r.URL.Query().Get("userId"))
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	h.service.SendKickMessage(r.Context(), chatId, userToKickId)
+
+	go h.forceKickAfterDelay(chatId, userToKickId)
+}
+
+func (h *Handler) forceKickAfterDelay(chatId, userToKickId int64) {
+	duration := h.conf.FrontendConfig.ForceKickAfter
+	if duration > 0 {
+		time.Sleep(duration)
+		if err := h.service.KickUser(chatId, userToKickId, false); err != nil {
+			logger.Error(err, "Error during force kick")
+		}
+	}
+}
 
 func parseChatIdAndUserId(chatId, userId string) (int64, int64, error) {
 	chatIdInt64, err := utils.ParseInt64(chatId)

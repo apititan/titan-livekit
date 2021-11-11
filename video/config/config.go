@@ -20,6 +20,7 @@ type ExtendedICEServerConfig struct {
 type FrontendConfig struct {
 	ICEServers     []ExtendedICEServerConfig `mapstructure:"iceserver"`
 	PreferredCodec string `mapstructure:"preferredCodec"`
+	ForceKickAfter time.Duration `mapstructure:"forceKickAfter"`
 }
 
 type RabbitMqConfig struct {

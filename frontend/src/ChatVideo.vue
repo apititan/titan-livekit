@@ -50,6 +50,7 @@
     } from "./utils";
     import { v4 as uuidv4 } from 'uuid';
     import vuetify from './plugins/vuetify'
+    import {chat_name, videochat_name} from "@/routes";
 
     const UserVideoClass = Vue.extend(UserVideo);
 
@@ -142,7 +143,11 @@
                 this.signalLocal.on_notify("force_mute", dto => {
                     console.log("Got force mute", dto);
                     this.onForceMuteByAdmin(dto);
-                })
+                });
+                this.signalLocal.on_notify("kick", dto => {
+                    console.log("Got kick", dto);
+                    this.onVideoCallKicked(dto);
+                });
 
                 this.peerId = uuidv4();
                 this.signalLocal.onopen = () => {
@@ -496,7 +501,13 @@
             },
             getNewId() {
                 return uuidv4();
-            }
+            },
+            onVideoCallKicked(e) {
+                if (this.$route.name == videochat_name && e.chatId == this.chatId) {
+                    console.log("kicked");
+                    this.$router.push({name: chat_name});
+                }
+            },
         },
         mounted() {
             this.chatId = this.$route.params.id;

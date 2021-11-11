@@ -396,6 +396,28 @@ func (h *ExtendedService) KickUser(chatId, userId int64, silent bool) error {
 	return nil
 }
 
+type forceKickDto struct {
+	ChatId int64 `json:"chatId"`
+}
+
+func (h *ExtendedService) SendKickMessage(ctx context.Context, chatId, userToLickId int64) {
+	h.userConnectionsIndex.RLock()
+	defer h.userConnectionsIndex.RUnlock()
+
+	if conns, ok := h.userConnectionsIndex.mapUserConnectionsList[userToLickId]; ok {
+		for _, conn := range conns {
+			parms := forceKickDto{
+				ChatId: chatId,
+			}
+			logger.Info("Sending kick notification", "chat_id", chatId, "to_user_id", userToLickId)
+			err := conn.Notify(ctx, "kick", parms)
+			if err!= nil {
+				logger.Error(err, "Error during sent kick notification", "chat_id", chatId, "to_user_id", userToLickId)
+			}
+		}
+	}
+}
+
 func (h *ExtendedService) NotifyAboutLeaving(chatId int64) {
 	if err := h.Notify(chatId, nil); err != nil {
 		logger.Error(err, "error during sending leave notification")
