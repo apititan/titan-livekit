@@ -351,7 +351,7 @@ func (h *Handler) ForceMute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.service.NotifyUserAboutForceMute(chatId, userToMuteId)
+	h.service.NotifyUserAboutForceMute(r.Context(), chatId, userToMuteId)
 }
 
 
