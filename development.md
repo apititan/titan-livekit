@@ -360,3 +360,5 @@ mc rm -r --force myminio/oldbucket
 ```
 curl -i -X PUT 'http://127.0.0.1:9000/files/chat/114/10b8c480-e279-44fa-bb7e-cb0f5cf5a165/a9e72a61-5182-4c10-9445-a13d98090760.jpg?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20211212%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20211212T230156Z&X-Amz-Expires=1800&X-Amz-SignedHeaders=host&X-Amz-Signature=fbc5d3c744a694332d413d0b735fb69e2f8d341e121ef1cc72d8d4502ad02054' --upload-file /home/nkonev/Pictures/backend.jpg
 ```
+
+https://medium.com/@kevinwu/client-side-file-upload-to-s3-using-axios-c9363ec7b530
