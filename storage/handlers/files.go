@@ -124,6 +124,7 @@ func (h *FilesHandler) UploadHandler(c echo.Context) error {
 	}
 	files := form.File[filesMultipartKey]
 
+	var pu string
 	for _, file := range files {
 		userLimitOk, _, _, err := checkUserLimit(h.minio, bucketName, userPrincipalDto, file.Size)
 		if err != nil {
@@ -147,18 +148,22 @@ func (h *FilesHandler) UploadHandler(c echo.Context) error {
 		fileUuid := uuid.New().String()
 		filename := fmt.Sprintf("chat/%v/%v/%v%v", chatId, fileItemUuid, fileUuid, dotExt)
 
-		var userMetadata = serializeMetadata(file, userPrincipalDto, chatId)
+		//var userMetadata = serializeMetadata(file, userPrincipalDto, chatId)
 
-		if _, err := h.minio.PutObject(context.Background(), bucketName, filename, src, file.Size, minio.PutObjectOptions{ContentType: contentType, UserMetadata: userMetadata}); err != nil {
-			Logger.Errorf("Error during upload object: %v", err)
-			return err
-		}
+		//if _, err := h.minio.PutObject(context.Background(), bucketName, filename, src, file.Size, minio.PutObjectOptions{ContentType: contentType, UserMetadata: userMetadata}); err != nil {
+		//	Logger.Errorf("Error during upload object: %v", err)
+		//	return err
+		//}
+		//h.minio.Pu
+		puU, _ := h.minio.PresignedPutObject(context.Background(), bucketName, filename, viper.GetDuration("minio.files.presignDuration"))
+		pu = puU.String()
 	}
 
 	// get count
 	count := h.getCountFilesInFileItem(bucketName, filenameChatPrefix)
 
-	return c.JSON(http.StatusOK, &utils.H{"status": "ok", "fileItemUuid": fileItemUuid, "count": count})
+	Logger.Infof("==========> %v", pu)
+	return c.JSON(http.StatusOK, &utils.H{"status": "ok", "fileItemUuid": fileItemUuid, "count": count, "presignedUrl": pu})
 }
 
 type ReplaceTextFileDto struct {

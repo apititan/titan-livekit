@@ -20,7 +20,9 @@ minio:
     userAvatar: "user-avatar"
     chatAvatar: "chat-avatar"
     files: "files"
-    embedded: "embedded"
+    embedded:
+  files:
+    presignDuration: "30m"
 
 chat:
   url:
