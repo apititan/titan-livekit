@@ -362,3 +362,4 @@ curl -i -X PUT 'http://127.0.0.1:9000/files/chat/114/10b8c480-e279-44fa-bb7e-cb0
 ```
 
 https://medium.com/@kevinwu/client-side-file-upload-to-s3-using-axios-c9363ec7b530
+https://bobbyhadz.com/blog/aws-s3-presigned-url-react
