@@ -79,6 +79,11 @@ func deserializeTags(tagging *tags.Tags) (bool, error) {
 	return utils.ParseBoolean(publicString)
 }
 
+type uploadDto struct {
+	Filename string `json:"filename"`
+	Size     int64  `json:"size"`
+}
+
 func (h *FilesHandler) UploadHandler(c echo.Context) error {
 	var userPrincipalDto, ok = c.Get(utils.USER_PRINCIPAL_DTO).(*auth.AuthResult)
 	if !ok {
@@ -118,46 +123,52 @@ func (h *FilesHandler) UploadHandler(c echo.Context) error {
 	}
 	// end check
 
-	form, err := c.MultipartForm()
+	//form, err := c.MultipartForm()
+	//if err != nil {
+	//	return err
+	//}
+	//files := form.File[filesMultipartKey]
+
+	var fDto = uploadDto{}
+	if err := c.Bind(&fDto); err != nil {
+		Logger.Errorf("Unable to read body %v", err)
+		return err
+	}
+
+	var pu string
+	//for _, file := range files {
+	userLimitOk, _, _, err := checkUserLimit(h.minio, bucketName, userPrincipalDto, fDto.Size)
 	if err != nil {
 		return err
 	}
-	files := form.File[filesMultipartKey]
-
-	var pu string
-	for _, file := range files {
-		userLimitOk, _, _, err := checkUserLimit(h.minio, bucketName, userPrincipalDto, file.Size)
-		if err != nil {
-			return err
-		}
-		if !userLimitOk {
-			return c.JSON(http.StatusRequestEntityTooLarge, &utils.H{"status": "fail"})
-		}
-
-		contentType := file.Header.Get("Content-Type")
-		dotExt := getDotExtension(file)
-
-		Logger.Debugf("Determined content type: %v", contentType)
-
-		src, err := file.Open()
-		if err != nil {
-			return err
-		}
-		defer src.Close()
-
-		fileUuid := uuid.New().String()
-		filename := fmt.Sprintf("chat/%v/%v/%v%v", chatId, fileItemUuid, fileUuid, dotExt)
-
-		//var userMetadata = serializeMetadata(file, userPrincipalDto, chatId)
-
-		//if _, err := h.minio.PutObject(context.Background(), bucketName, filename, src, file.Size, minio.PutObjectOptions{ContentType: contentType, UserMetadata: userMetadata}); err != nil {
-		//	Logger.Errorf("Error during upload object: %v", err)
-		//	return err
-		//}
-		//h.minio.Pu
-		puU, _ := h.minio.PresignedPutObject(context.Background(), bucketName, filename, viper.GetDuration("minio.files.presignDuration"))
-		pu = puU.String()
+	if !userLimitOk {
+		return c.JSON(http.StatusRequestEntityTooLarge, &utils.H{"status": "fail"})
 	}
+
+	//contentType := file.Header.Get("Content-Type")
+	dotExt := getDotExtensionStr(fDto.Filename)
+
+	//Logger.Debugf("Determined content type: %v", contentType)
+
+	//src, err := file.Open()
+	//if err != nil {
+	//	return err
+	//}
+	//defer src.Close()
+
+	fileUuid := uuid.New().String()
+	filename := fmt.Sprintf("chat/%v/%v/%v%v", chatId, fileItemUuid, fileUuid, dotExt)
+
+	//var userMetadata = serializeMetadata(file, userPrincipalDto, chatId)
+
+	//if _, err := h.minio.PutObject(context.Background(), bucketName, filename, src, file.Size, minio.PutObjectOptions{ContentType: contentType, UserMetadata: userMetadata}); err != nil {
+	//	Logger.Errorf("Error during upload object: %v", err)
+	//	return err
+	//}
+	//h.minio.Pu
+	puU, _ := h.minio.PresignedPutObject(context.Background(), bucketName, filename, viper.GetDuration("minio.files.presignDuration"))
+	pu = puU.String()
+	//}
 
 	// get count
 	count := h.getCountFilesInFileItem(bucketName, filenameChatPrefix)

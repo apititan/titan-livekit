@@ -132,17 +132,27 @@ export default {
                 cancelToken: this.cancelSource.token
             }
             console.log("Sending file to storage");
-            const formData = new FormData();
+            // const formData = new FormData();
             let totalSize = 0;
+            let filename = ''; // TODO remove cycle
             for (const file of this.files) {
                 totalSize += file.size;
-                formData.append('files', file);
+                // formData.append('file', file);
+                filename = file.name
             }
             return this.checkLimits(totalSize).then(()=>{
-                return axios.post(`/api/storage/${this.chatId}/file`+(this.fileItemUuid ? `/${this.fileItemUuid}` : ''), formData, config)
+                let responseTmp;
+                return axios.post(`/api/storage/${this.chatId}/file`+(this.fileItemUuid ? `/${this.fileItemUuid}` : ''), {
+                    filename: filename,
+                    size: totalSize
+                })
+                    .then(response => {
+                        responseTmp = response.data;
+                        return axios.put(responseTmp.presignedUrl, this.files[0], config)
+                    })
                     .then(response => {
                         if (this.$data.shouldSetFileUuidToMessage) {
-                            bus.$emit(SET_FILE_ITEM_UUID, {fileItemUuid: response.data.fileItemUuid, count: response.data.count});
+                            bus.$emit(SET_FILE_ITEM_UUID, {fileItemUuid: responseTmp.fileItemUuid, count: responseTmp.count});
                         }
                         this.uploading = false;
                         if (this.$data.shouldUpdateFileList) {
