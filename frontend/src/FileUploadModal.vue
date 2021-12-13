@@ -134,7 +134,7 @@ export default {
             console.log("Sending file to storage");
             // const formData = new FormData();
             let totalSize = 0;
-            let filename = ''; // TODO remove cycle
+            let filename = ''; // TODO make several uploads to minio in cycle below
             for (const file of this.files) {
                 totalSize += file.size;
                 // formData.append('file', file);
@@ -146,6 +146,7 @@ export default {
                     filename: filename,
                     size: totalSize
                 })
+                    // saving by presigned url to minio
                     .then(response => {
                         responseTmp = response.data;
                         return axios.put(responseTmp.presignedUrl, this.files[0], config)
