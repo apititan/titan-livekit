@@ -159,14 +159,19 @@ func (h *FilesHandler) UploadHandler(c echo.Context) error {
 	fileUuid := uuid.New().String()
 	filename := fmt.Sprintf("chat/%v/%v/%v%v", chatId, fileItemUuid, fileUuid, dotExt)
 
-	//var userMetadata = serializeMetadata(file, userPrincipalDto, chatId)
+	var userMetadata = serializeMetadataByArgs(fDto.Filename, userPrincipalDto, chatId)
 
 	//if _, err := h.minio.PutObject(context.Background(), bucketName, filename, src, file.Size, minio.PutObjectOptions{ContentType: contentType, UserMetadata: userMetadata}); err != nil {
 	//	Logger.Errorf("Error during upload object: %v", err)
 	//	return err
 	//}
 	//h.minio.Pu
-	puU, _ := h.minio.PresignedPutObject(context.Background(), bucketName, filename, viper.GetDuration("minio.files.presignDuration"))
+	const xAmzMetaPrefix = "X-Amz-Meta-"
+	uv := url.Values{}
+	for k, v := range userMetadata {
+		uv[strings.Title(xAmzMetaPrefix+k)] = []string{v}
+	}
+	puU, _ := h.minio.Presign(context.Background(), http.MethodPut, bucketName, filename, viper.GetDuration("minio.files.presignDuration"), uv)
 	pu = puU.String()
 	//}
 
