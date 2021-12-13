@@ -137,6 +137,7 @@ func (h *FilesHandler) UploadHandler(c echo.Context) error {
 
 	var pu string
 	//for _, file := range files {
+	// TODO Think how to really (if possible) check file size.
 	userLimitOk, _, _, err := checkUserLimit(h.minio, bucketName, userPrincipalDto, fDto.Size)
 	if err != nil {
 		return err
