@@ -138,6 +138,7 @@ func (h *FilesHandler) UploadHandler(c echo.Context) error {
 	var pu string
 	//for _, file := range files {
 	// TODO Think how to really (if possible) check file size.
+	//  Seems answer here https://stackoverflow.com/questions/17313695/how-to-restrict-the-size-of-the-file-being-uploaded-on-to-the-aws-s3-service-usi?rq=1
 	userLimitOk, _, _, err := checkUserLimit(h.minio, bucketName, userPrincipalDto, fDto.Size)
 	if err != nil {
 		return err
