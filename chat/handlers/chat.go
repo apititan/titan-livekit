@@ -70,12 +70,17 @@ func (ch ChatHandler) GetChats(c echo.Context) error {
 		return err
 	} else {
 		chatDtos := make([]*dto.ChatDto, 0)
+		var chatIds = []int64{}
+		for _, chat := range dbChats {
+			chatIds = append(chatIds, chat.Id)
+		}
+		chatsAndMessages, err := ch.db.GetUnreadMessagesCount(chatIds, userPrincipalDto.UserId)
+
 		for _, cc := range dbChats {
-			messages, err := ch.db.GetUnreadMessagesCount(cc.Id, userPrincipalDto.UserId)
 			if err != nil {
 				return err
 			}
-			cd := convertToDto(cc, []*dto.User{}, messages)
+			cd := convertToDto(cc, []*dto.User{}, chatsAndMessages[cc.Id])
 			chatDtos = append(chatDtos, cd)
 		}
 
@@ -119,11 +124,11 @@ func getChat(dbR db.CommonOperations, restClient client.RestClient, c echo.Conte
 			GetLogEntry(c.Request()).Warn("Error during getting users from aaa")
 		}
 
-		unreadMessages, err := dbR.GetUnreadMessagesCount(cc.Id, behalfParticipantId)
+		unreadMessages, err := dbR.GetUnreadMessagesCount([]int64{cc.Id}, behalfParticipantId)
 		if err != nil {
 			return nil, err
 		}
-		chatDto := convertToDto(cc, users, unreadMessages)
+		chatDto := convertToDto(cc, users, unreadMessages[cc.Id])
 		if authResult != nil && authResult.HasRole("ROLE_ADMIN") {
 			chatDto.CanBroadcast = true
 		}

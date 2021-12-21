@@ -98,7 +98,7 @@ func chatNotifyCommon(userIds []int64, not *notifictionsImpl, c echo.Context, ne
 			continue
 		}
 
-		unreadMessages, err := tx.GetUnreadMessagesCount(newChatDto.Id, participantId)
+		unreadMessages, err := tx.GetUnreadMessagesCount([]int64{newChatDto.Id}, participantId)
 		if err != nil {
 			GetLogEntry(c.Request()).Errorf("error during get unread messages for userId=%v: %s", participantId, err)
 			continue
@@ -109,7 +109,7 @@ func chatNotifyCommon(userIds []int64, not *notifictionsImpl, c echo.Context, ne
 		copied.CanEdit = null.BoolFrom(admin && !copied.IsTetATet)
 		copied.CanDelete = null.BoolFrom(admin)
 		copied.CanLeave = null.BoolFrom(!admin && !copied.IsTetATet)
-		copied.HasUnreadMessages = unreadMessages
+		copied.HasUnreadMessages = unreadMessages[newChatDto.Id]
 		copied.CanVideoKick = admin
 		copied.CanAudioMute = admin
 		copied.CanChangeChatAdmins = admin && !copied.IsTetATet
@@ -143,7 +143,7 @@ func (not *notifictionsImpl) ChatNotifyMessageCount(userIds []int64, c echo.Cont
 		participantChannel := utils.PersonalChannelPrefix + utils.Int64ToString(participantId)
 		GetLogEntry(c.Request()).Infof("Sending notification about unread messages to participantChannel: %v", participantChannel)
 
-		unreadMessages, err := tx.GetUnreadMessagesCount(chatId, participantId)
+		unreadMessages, err := tx.GetUnreadMessagesCount([]int64{chatId}, participantId)
 		if err != nil {
 			GetLogEntry(c.Request()).Errorf("error during get unread messages for userId=%v: %s", participantId, err)
 			continue
@@ -151,7 +151,7 @@ func (not *notifictionsImpl) ChatNotifyMessageCount(userIds []int64, c echo.Cont
 
 		payload := &ChatUnreadMessageChanged{
 			ChatId:            chatId,
-			HasUnreadMessages: unreadMessages,
+			HasUnreadMessages: unreadMessages[chatId],
 		}
 
 		notification := dto.CentrifugeNotification{

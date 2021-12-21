@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/guregu/null"
 	. "nkonev.name/chat/logger"
+	"strings"
 	"time"
 )
 
@@ -149,14 +150,35 @@ func (dbR *DB) SetFileItemUuidToNull(ownerId, chatId int64, uuid string) (int64,
 	}
 }
 
-func getUnreadMessagesCountCommon(co CommonOperations, chatId int64, userId int64) (bool, error) {
-	var has bool
-	row := co.QueryRow("SELECT EXISTS (SELECT 1 FROM message WHERE chat_id = $1 AND id > COALESCE((SELECT last_message_id FROM message_read WHERE user_id = $2 AND chat_id = $1), 0))", chatId, userId)
-	err := row.Scan(&has)
-	if err != nil {
-		return false, err
+func getUnreadMessagesCountCommon(co CommonOperations, chatIds []int64, userId int64) (map[int64]bool, error) {
+	chatIdsStrings := make([]string, len(chatIds))
+	for num, chatId := range chatIds {
+		chatIdsStrings[num] = fmt.Sprintf("%d", chatId)
+	}
+
+	if rows, err := co.Query(fmt.Sprintf(`
+SELECT chat_id, max_message IS NOT NULL AND (last_for_user != max_message) AS has_unread FROM (
+            SELECT mr.chat_id, mr.last_message_id as last_for_user, (select max(id) from message me where me.chat_id = mr.chat_id) as max_message
+                FROM  message_read mr 
+                WHERE mr.user_id = $1 AND mr.chat_id IN ( %v )
+) alz;
+`, strings.Join(chatIdsStrings, ",")), userId); err != nil {
+		Logger.Errorf("Error during get chat unread rows %v", err)
+		return map[int64]bool{}, err
 	} else {
-		return has, nil
+		defer rows.Close()
+		var result = map[int64]bool{}
+		for rows.Next() {
+			var chatId int64
+			var has bool
+			if err := rows.Scan(&chatId, &has); err != nil {
+				Logger.Errorf("Error during scan chat unread rows %v", err)
+				return nil, err
+			} else {
+				result[chatId] = has
+			}
+		}
+		return result, nil
 	}
 }
 
@@ -182,11 +204,11 @@ SELECT EXISTS(
 	}
 }
 
-func (db *DB) GetUnreadMessagesCount(chatId int64, userId int64) (bool, error) {
+func (db *DB) GetUnreadMessagesCount(chatId []int64, userId int64) (map[int64]bool, error) {
 	return getUnreadMessagesCountCommon(db, chatId, userId)
 }
 
-func (tx *Tx) GetUnreadMessagesCount(chatId int64, userId int64) (bool, error) {
+func (tx *Tx) GetUnreadMessagesCount(chatId []int64, userId int64) (map[int64]bool, error) {
 	return getUnreadMessagesCountCommon(tx, chatId, userId)
 }
 
