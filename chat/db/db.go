@@ -40,7 +40,7 @@ type CommonOperations interface {
 	GetChatWithParticipants(behalfParticipantId, chatId int64) (*ChatWithParticipants, error)
 	GetMessage(chatId int64, userId int64, messageId int64) (*Message, error)
 	GetUnreadMessagesCount(chatId int64, userId int64) (int64, error)
-	GetAllUnreadMessagesCount(chatId int64) (int64, error)
+	GetAllUnreadMessagesCount(chatId int64) (bool, error)
 	SetAdmin(userId int64, chatId int64, newAdmin bool) error
 }
 
@@ -102,7 +102,7 @@ var embeddedFiles embed.FS
 
 func migrateInternal(db *sql.DB, path, migrationTable string) {
 	staticDir := http.FS(embeddedFiles)
-	src, err := httpfs.New(staticDir, "migrations" + path)
+	src, err := httpfs.New(staticDir, "migrations"+path)
 	if err != nil {
 		Logger.Fatal(err)
 	}

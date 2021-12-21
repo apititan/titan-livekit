@@ -17,7 +17,7 @@ type Message struct {
 	OwnerId        int64
 	CreateDateTime time.Time
 	EditDateTime   null.Time
-	FileItemUuid *uuid.UUID
+	FileItemUuid   *uuid.UUID
 }
 
 func (db *DB) GetMessages(chatId int64, userId int64, limit int, startingFromItemId int64, reverse bool) ([]*Message, error) {
@@ -160,23 +160,26 @@ func getUnreadMessagesCountCommon(co CommonOperations, chatId int64, userId int6
 	}
 }
 
-func getAllUnreadMessagesCountCommon(co CommonOperations, userId int64) (int64, error) {
-	var count int64
+func getAllUnreadMessagesCountCommon(co CommonOperations, userId int64) (bool, error) {
+	var has bool
 	row := co.QueryRow(`
 SELECT COALESCE(
-	(SELECT SUM(unread) FROM (
-		SELECT chp.chat_id, (
-			SELECT COUNT(*) FROM message WHERE chat_id = chp.chat_id AND id > COALESCE((SELECT last_message_id FROM message_read WHERE user_id = $1 AND chat_id = chp.chat_id), 0)
-			) AS unread FROM chat_participant chp WHERE chp.user_id = $1
-	) AS alias_ignored),
-	0
-)
+(
+	SELECT true
+    FROM message m
+    JOIN chat_participant chp on m.chat_id = chp.chat_id
+    JOIN message_read mr ON (mr.chat_id = chp.chat_id AND m.id > mr.last_message_id)
+    WHERE chp.user_id = $1
+    LIMIT 1
+),
+    false
+);
 `, userId)
-	err := row.Scan(&count)
+	err := row.Scan(&has)
 	if err != nil {
-		return 0, err
+		return false, err
 	} else {
-		return count, nil
+		return has, nil
 	}
 }
 
@@ -188,10 +191,10 @@ func (tx *Tx) GetUnreadMessagesCount(chatId int64, userId int64) (int64, error) 
 	return getUnreadMessagesCountCommon(tx, chatId, userId)
 }
 
-func (db *DB) GetAllUnreadMessagesCount(userId int64) (int64, error) {
+func (db *DB) GetAllUnreadMessagesCount(userId int64) (bool, error) {
 	return getAllUnreadMessagesCountCommon(db, userId)
 }
 
-func (tx *Tx) GetAllUnreadMessagesCount(userId int64) (int64, error) {
+func (tx *Tx) GetAllUnreadMessagesCount(userId int64) (bool, error) {
 	return getAllUnreadMessagesCountCommon(tx, userId)
 }

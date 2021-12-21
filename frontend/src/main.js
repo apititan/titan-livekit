@@ -119,7 +119,7 @@ vm = new Vue({
         bus.$emit(UNREAD_MESSAGES_CHANGED, d);
       } else if (getData(ctx).type === 'all_unread_messages_changed') {
           const d = getProperData(ctx);
-          const currentNewMessages = d.allUnreadMessages > 0;
+          const currentNewMessages = d.hasUnreadMessages;
           setIcon(currentNewMessages)
       } else if (getData(ctx).type === 'user_profile_changed') {
         const d = getProperData(ctx);

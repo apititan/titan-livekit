@@ -318,7 +318,7 @@
                     this.centrifuge.namedRPC("check_for_new_messages").then(value => {
                         console.debug("New messages response", value);
                         if (getData(value)) {
-                            const currentNewMessages = getData(value).allUnreadMessages > 0;
+                            const currentNewMessages = getData(value).hasUnreadMessages;
                             setIcon(currentNewMessages)
                         }
                     })
