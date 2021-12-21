@@ -163,16 +163,15 @@ func getUnreadMessagesCountCommon(co CommonOperations, chatId int64, userId int6
 func getAllUnreadMessagesCountCommon(co CommonOperations, userId int64) (bool, error) {
 	var has bool
 	row := co.QueryRow(`
-SELECT COALESCE(
-(
-	SELECT true
-    FROM message m
-    JOIN chat_participant chp on m.chat_id = chp.chat_id
-    JOIN message_read mr ON (mr.chat_id = chp.chat_id AND m.id > mr.last_message_id)
-    WHERE chp.user_id = $1
-    LIMIT 1
-),
-    false
+SELECT EXISTS(
+    SELECT 1 FROM (
+        SELECT chat_id, max_message IS NOT NULL AND (last_for_user != max_message) AS has_unread FROM (
+            SELECT ch.chat_id, mr.last_message_id as last_for_user, (select max(id) from message me where me.chat_id = mr.chat_id) as max_message
+                FROM chat_participant ch
+                LEFT JOIN message_read mr on ch.chat_id = mr.chat_id
+                WHERE ch.user_id = $1
+        ) aliaz
+    ) alz WHERE alz.has_unread = TRUE
 );
 `, userId)
 	err := row.Scan(&has)
