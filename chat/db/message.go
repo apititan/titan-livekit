@@ -149,14 +149,14 @@ func (dbR *DB) SetFileItemUuidToNull(ownerId, chatId int64, uuid string) (int64,
 	}
 }
 
-func getUnreadMessagesCountCommon(co CommonOperations, chatId int64, userId int64) (int64, error) {
-	var count int64
-	row := co.QueryRow("SELECT COUNT(*) FROM message WHERE chat_id = $1 AND id > COALESCE((SELECT last_message_id FROM message_read WHERE user_id = $2 AND chat_id = $1), 0)", chatId, userId)
-	err := row.Scan(&count)
+func getUnreadMessagesCountCommon(co CommonOperations, chatId int64, userId int64) (bool, error) {
+	var has bool
+	row := co.QueryRow("SELECT EXISTS (SELECT 1 FROM message WHERE chat_id = $1 AND id > COALESCE((SELECT last_message_id FROM message_read WHERE user_id = $2 AND chat_id = $1), 0))", chatId, userId)
+	err := row.Scan(&has)
 	if err != nil {
-		return 0, err
+		return false, err
 	} else {
-		return count, nil
+		return has, nil
 	}
 }
 
@@ -182,11 +182,11 @@ SELECT EXISTS(
 	}
 }
 
-func (db *DB) GetUnreadMessagesCount(chatId int64, userId int64) (int64, error) {
+func (db *DB) GetUnreadMessagesCount(chatId int64, userId int64) (bool, error) {
 	return getUnreadMessagesCountCommon(db, chatId, userId)
 }
 
-func (tx *Tx) GetUnreadMessagesCount(chatId int64, userId int64) (int64, error) {
+func (tx *Tx) GetUnreadMessagesCount(chatId int64, userId int64) (bool, error) {
 	return getUnreadMessagesCountCommon(tx, chatId, userId)
 }
 

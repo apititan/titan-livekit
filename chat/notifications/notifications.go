@@ -109,7 +109,7 @@ func chatNotifyCommon(userIds []int64, not *notifictionsImpl, c echo.Context, ne
 		copied.CanEdit = null.BoolFrom(admin && !copied.IsTetATet)
 		copied.CanDelete = null.BoolFrom(admin)
 		copied.CanLeave = null.BoolFrom(!admin && !copied.IsTetATet)
-		copied.UnreadMessages = unreadMessages
+		copied.HasUnreadMessages = unreadMessages
 		copied.CanVideoKick = admin
 		copied.CanAudioMute = admin
 		copied.CanChangeChatAdmins = admin && !copied.IsTetATet
@@ -134,8 +134,8 @@ func chatNotifyCommon(userIds []int64, not *notifictionsImpl, c echo.Context, ne
 }
 
 type ChatUnreadMessageChanged struct {
-	ChatId         int64 `json:"chatId"`
-	UnreadMessages int64 `json:"unreadMessages"`
+	ChatId            int64 `json:"chatId"`
+	HasUnreadMessages bool  `json:"hasUnreadMessages"`
 }
 
 func (not *notifictionsImpl) ChatNotifyMessageCount(userIds []int64, c echo.Context, chatId int64, tx *db.Tx) {
@@ -150,8 +150,8 @@ func (not *notifictionsImpl) ChatNotifyMessageCount(userIds []int64, c echo.Cont
 		}
 
 		payload := &ChatUnreadMessageChanged{
-			ChatId:         chatId,
-			UnreadMessages: unreadMessages,
+			ChatId:            chatId,
+			HasUnreadMessages: unreadMessages,
 		}
 
 		notification := dto.CentrifugeNotification{

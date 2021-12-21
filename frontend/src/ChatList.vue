@@ -15,7 +15,7 @@
                         <span class="min-height">
                             {{item.name}}
                         </span>
-                        <v-badge v-if="item.unreadMessages" inline :content="item.unreadMessages" class="mt-0"></v-badge>
+                        <v-badge v-if="item.hasUnreadMessages" inline class="mt-0" dot></v-badge>
                         <v-badge v-if="item.videoChatUsersCount" color="success" icon="mdi-phone" inline  class="mt-0"/>
                     </v-list-item-title>
                     <v-list-item-subtitle v-html="printParticipants(item)"></v-list-item-subtitle>
@@ -194,7 +194,7 @@
                 const chatId = dto.chatId;
                 let idxOf = findIndex(this.items, {id: chatId});
                 if (idxOf != -1) {
-                    this.items[idxOf].unreadMessages = dto.unreadMessages;
+                    this.items[idxOf].hasUnreadMessages = dto.hasUnreadMessages;
                     this.$forceUpdate();
                 } else {
                     console.log("Not found to update unread messages", dto)

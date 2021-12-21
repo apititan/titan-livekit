@@ -192,7 +192,7 @@ func (ch ChatHandler) getChatWithAdminedUsers(c echo.Context, chat *dto.ChatDto,
 	return copiedChat, nil
 }
 
-func convertToDto(c *db.ChatWithParticipants, users []*dto.User, unreadMessages int64) *dto.ChatDto {
+func convertToDto(c *db.ChatWithParticipants, users []*dto.User, hasUnreadMessages bool) *dto.ChatDto {
 	b := dto.BaseChatDto{
 		Id:             c.Id,
 		Name:           c.Title,
@@ -204,7 +204,7 @@ func convertToDto(c *db.ChatWithParticipants, users []*dto.User, unreadMessages 
 		CanDelete:           null.BoolFrom(c.IsAdmin),
 		LastUpdateDateTime:  c.LastUpdateDateTime,
 		CanLeave:            null.BoolFrom(!c.IsAdmin && !c.TetATet),
-		UnreadMessages:      unreadMessages,
+		HasUnreadMessages:   hasUnreadMessages,
 		IsTetATet:           c.TetATet,
 		CanVideoKick:        c.IsAdmin,
 		CanAudioMute:        c.IsAdmin,

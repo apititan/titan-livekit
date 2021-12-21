@@ -15,7 +15,7 @@ type BaseChatDto struct {
 	CanEdit             null.Bool   `json:"canEdit"`
 	CanDelete           null.Bool   `json:"canDelete"`
 	CanLeave            null.Bool   `json:"canLeave"`
-	UnreadMessages      int64       `json:"unreadMessages"`
+	HasUnreadMessages   bool        `json:"hasUnreadMessages"`
 	CanBroadcast        bool        `json:"canBroadcast"`
 	CanVideoKick        bool        `json:"canVideoKick"`
 	CanChangeChatAdmins bool        `json:"canChangeChatAdmins"`
