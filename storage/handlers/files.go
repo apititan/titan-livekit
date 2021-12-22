@@ -23,8 +23,9 @@ import (
 )
 
 type FilesHandler struct {
-	minio      *minio.Client
-	chatClient *client.RestClient
+	minio       *minio.Client
+	chatClient  *client.RestClient
+	minioConfig *utils.MinioConfig
 }
 
 type RenameDto struct {
@@ -53,10 +54,12 @@ const publicKey = "public"
 func NewFilesHandler(
 	minio *minio.Client,
 	chatClient *client.RestClient,
+	minioConfig *utils.MinioConfig,
 ) *FilesHandler {
 	return &FilesHandler{
-		minio:      minio,
-		chatClient: chatClient,
+		minio:       minio,
+		chatClient:  chatClient,
+		minioConfig: minioConfig,
 	}
 }
 
@@ -100,10 +103,7 @@ func (h *FilesHandler) UploadHandler(c echo.Context) error {
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	bucketName, err := EnsureAndGetFilesBucket(h.minio)
-	if err != nil {
-		return err
-	}
+	bucketName := h.minioConfig.Files
 
 	fileItemUuid := uuid.New().String()
 
@@ -213,10 +213,7 @@ func (h *FilesHandler) ReplaceHandler(c echo.Context) error {
 		return err
 	}
 
-	bucketName, err := EnsureAndGetFilesBucket(h.minio)
-	if err != nil {
-		return err
-	}
+	bucketName := h.minioConfig.Files
 
 	fileItemUuid := getFileItemUuid(bindTo.Id)
 
@@ -304,12 +301,9 @@ func (h *FilesHandler) ListHandler(c echo.Context) error {
 
 	fileItemUuid := c.QueryParam("fileItemUuid")
 
-	bucket, err := EnsureAndGetFilesBucket(h.minio)
-	if err != nil {
-		return err
-	}
+	bucketName := h.minioConfig.Files
 
-	Logger.Debugf("Listing bucket '%v':", bucket)
+	Logger.Debugf("Listing bucket '%v':", bucketName)
 
 	var filenameChatPrefix string
 	if fileItemUuid == "" {
@@ -318,7 +312,7 @@ func (h *FilesHandler) ListHandler(c echo.Context) error {
 		filenameChatPrefix = fmt.Sprintf("chat/%v/%v/", chatId, fileItemUuid)
 	}
 
-	list, err := h.getListFilesInFileItem(userPrincipalDto.UserId, bucket, filenameChatPrefix, chatId)
+	list, err := h.getListFilesInFileItem(userPrincipalDto.UserId, bucketName, filenameChatPrefix, chatId)
 	if err != nil {
 		return err
 	}
@@ -496,10 +490,7 @@ func (h *FilesHandler) DeleteHandler(c echo.Context) error {
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	bucketName, err := EnsureAndGetFilesBucket(h.minio)
-	if err != nil {
-		return err
-	}
+	bucketName := h.minioConfig.Files
 
 	// check this fileItem belongs to user
 	objectInfo, err := h.minio.StatObject(context.Background(), bucketName, bindTo.Id, minio.StatObjectOptions{})
@@ -592,10 +583,7 @@ func (h *FilesHandler) DownloadHandler(c echo.Context) error {
 		return errors.New("Error during getting auth context")
 	}
 
-	bucketName, err := EnsureAndGetFilesBucket(h.minio)
-	if err != nil {
-		return err
-	}
+	bucketName := h.minioConfig.Files
 
 	// check user belongs to chat
 	fileId := c.QueryParam("file")
@@ -646,10 +634,7 @@ func (h *FilesHandler) SetPublic(c echo.Context) error {
 		return errors.New("Error during getting auth context")
 	}
 
-	bucketName, err := EnsureAndGetFilesBucket(h.minio)
-	if err != nil {
-		return err
-	}
+	bucketName := h.minioConfig.Files
 
 	var bindTo = new(PublishRequest)
 	if err := c.Bind(bindTo); err != nil {
@@ -727,10 +712,7 @@ func (h *FilesHandler) CountHandler(c echo.Context) error {
 		return errors.New("Error during getting auth context")
 	}
 
-	bucketName, err := EnsureAndGetFilesBucket(h.minio)
-	if err != nil {
-		return err
-	}
+	bucketName := h.minioConfig.Files
 
 	// check user belongs to chat
 	fileItemUuid := c.Param("fileItemUuid")
@@ -777,10 +759,7 @@ func (h *FilesHandler) countFilesUnderFileUuid(chatId int64, fileItemUuid string
 }
 
 func (h *FilesHandler) PublicDownloadHandler(c echo.Context) error {
-	bucketName, err := EnsureAndGetFilesBucket(h.minio)
-	if err != nil {
-		return err
-	}
+	bucketName := h.minioConfig.Files
 
 	// check file is public
 	fileId := c.QueryParam("file")
@@ -842,10 +821,7 @@ func (h *FilesHandler) LimitsHandler(c echo.Context) error {
 		return c.NoContent(http.StatusUnauthorized)
 	}
 
-	bucketName, err := EnsureAndGetFilesBucket(h.minio)
-	if err != nil {
-		return err
-	}
+	bucketName := h.minioConfig.Files
 
 	desiredSize, err := utils.ParseInt64(c.QueryParam("desiredSize"))
 	if err != nil {

@@ -354,6 +354,11 @@ mc mirror myminio/oldbucket myminio/newbucket
 mc rm -r --force myminio/oldbucket
 ```
 
+# Open pgCenter
+```bash
+docker run --network=videochat_backend -it --rm lesovsky/pgcenter:latest pgcenter top -h videochat_postgresql_1 -U chat -d chat
+```
+
 # MinIO Prsigned PUT
 1. Get Presigned PUT url
 2. Issue the following curl
