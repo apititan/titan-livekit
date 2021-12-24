@@ -259,6 +259,7 @@
                     if (!this.isCnangingLocalStream && !this.restartingStarted) {
                         const localStreamId = this.$refs.localVideoComponent.getStreamId();
                         console.debug("Checking self user", "streamId", localStreamId);
+                        // TODO here check all local stream ids
                         this.signalLocal.call(USER_BY_STREAM_ID_METHOD, {streamId: localStreamId, includeOtherStreamIds: true}).then(value => {
                             if (!value.found) {
                                 console.warn("Detected absence of self user on server, restarting...", "streamId", localStreamId);
@@ -296,6 +297,7 @@
                     .then(response => response.data)
             },
             notifyWithData() {
+                // TODO send all data about all local stream ids
                 // notify another participants, they will receive VIDEO_CALL_CHANGED
                 const toSend = {
                     avatar: this.currentUser.avatar,
@@ -326,7 +328,7 @@
             onStopScreenSharing() {
                 return this.onSwitchMediaStream({screen: false});
             },
-            onSwitchMediaStream({screen = false}) {
+            onSwitchMediaStream({screen = false}) { // TODO rewrite this method to add and publish a new local stream
                 this.clearLocalMediaStream();
                 this.$refs.localVideoComponent.setSource(null);
                 this.localPublisherKey++;
@@ -336,6 +338,7 @@
                       this.$refs.localVideoComponent.setUserName('Error get getDisplayMedia');
                     });
             },
+            // TODO Either rename to add a local stream or refactor to dummy return object {localMediaStream, localVideoComponent}
             getAndPublishLocalMediaStream({screen = false}) {
                 this.isCnangingLocalStream = true;
 
