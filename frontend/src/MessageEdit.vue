@@ -63,11 +63,10 @@
     import debounce from "lodash/debounce";
     import {mapGetters} from "vuex";
     import {GET_USER, SET_TITLE} from "./store";
-    import 'quill/dist/quill.core.css'
-    import 'quill/dist/quill.snow.css'
+    import 'quill/assets/snow.styl'
+
     import imageDropFunction from './ImageDrop';
-    import VQuill from 'quill'
-    const Quill = VQuill;
+    import Quill from 'quill/quill'
     // We need use Quill.import https://github.com/quilljs/quill/pull/2939/files
     const Image = Quill.import('formats/image');
     class SizedImage extends Image {

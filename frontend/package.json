@@ -13,7 +13,7 @@
     "date-fns": "^2.23.0",
     "ion-sdk-js": "1.8.1",
     "lodash": "^4.17.21",
-    "quill": "1.3.7",
+    "quill": "github:quilljs/quill#cf9d8354b7c0f7e8d1cb19d95c65a6c4f62e8210",
     "splitpanes": "^2.3.8",
     "stylus": "^0.54.8",
     "typeface-roboto": "1.1.13",

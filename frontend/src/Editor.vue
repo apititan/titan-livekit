@@ -7,9 +7,8 @@
 
 <script>
 // https://github.com/davidroyer/vue2-editor/blob/master/src/components/VueEditor.vue
-import VQuill from 'quill'
+import Quill from 'quill/quill'
 import merge from 'lodash/merge'
-const Quill = VQuill;
 
 export default {
     name: 'vue-editor',
