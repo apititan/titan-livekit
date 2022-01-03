@@ -81,6 +81,7 @@ export default {
             this.handleDynamicStyles()
             this.checkForInitialContent()
             this.checkForCustomImageHandler()
+            this.applyGoogleKeyboardWorkaround(this.quill)
         },
 
         setQuillElement() {
@@ -161,8 +162,46 @@ export default {
             let range = Editor.getSelection();
             let cursorLocation = range.index
             this.$emit('imageAdded', file, Editor, cursorLocation, resetUploader)
-        }
+        },
+        applyGoogleKeyboardWorkaround(editor) {
+            try {
+                if (!editor.applyGoogleKeyboardWorkaround) {
+                    // https://github.com/quilljs/quill/issues/3240
+                    console.log("applying gboard workaround");
+                    editor.applyGoogleKeyboardWorkaround = true;
+                    editor.on('editor-change', (eventName, ...args) => {
+                        if (eventName === 'text-change') {
+                            // args[0] will be delta
+                            const ops = args[0].ops;
+                            const oldSelection = editor.getSelection();
+                            const oldPos = oldSelection?.index;
+                            const oldSelectionLength = oldSelection ? oldSelection.length : 0;
 
+                            if (ops[0].retain === undefined ||
+                                !ops[1] ||
+                                !ops[1].insert ||
+                                !ops[1].insert ||
+                                ops[1].insert !== '\n' ||
+                                oldSelectionLength > 0) {
+                                return;
+                            }
+
+                            setTimeout(() => {
+                                const newPos = editor.getSelection().index;
+                                if (newPos === oldPos) {
+                                    console.log('Change selection bad pos');
+                                    editor.setSelection(editor.getSelection().index + 1, 0);
+                                }
+                            }, 30);
+                        }
+                    });
+                    console.log('gboard workaround has been successfully applied');
+                }
+            } catch(e) {
+                console.log('error during applying gboard workaround');
+                console.debug('error during applying gboard workaround', e);
+            }
+        }
     }
 }
 </script>
