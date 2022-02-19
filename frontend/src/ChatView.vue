@@ -109,7 +109,8 @@
                 scrollerProbeCurrent: 0,
                 scrollerProbePrevious: 0,
                 scrollerProbePreviousPrevious: 0,
-                forbidChangeScrollDirection: false
+                forbidChangeScrollDirection: false,
+                initialHeight: 0,
             }
         },
         computed: {
@@ -461,6 +462,9 @@
                 if (isScrolled) {
                     this.scrollDown();
                 }
+
+                const metaViewport = document.querySelector('meta[name=viewport]');
+                metaViewport.setAttribute('content', 'height=' + this.initialHeight + 'px, width=device-width, initial-scale=1.0');
             }
         },
         created() {
@@ -469,6 +473,7 @@
         },
         mounted() {
             this.splitpanesHeight = calcSplitpanesHeight();
+            this.initialHeight = window.innerHeight;
 
             window.addEventListener('resize', this.onResizedListener);
 
