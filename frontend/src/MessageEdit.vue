@@ -42,10 +42,7 @@
                     <select class="ql-color" v-if="false"></select>
                     <select class="ql-background" v-if="false"></select>
                     <button class="richText__menu-item" v-if="false">link</button>
-                    <button
-                        class="richText__menu-item"
-                        @click="$refs.tipTapRef.addImage()"
-                    >image</button>
+                    <v-btn @click="$refs.tipTapRef.addImage()" tile small icon><v-icon>mdi-image</v-icon></v-btn>
                 </div>
                 <div class="custom-toolbar-send">
                     <v-btn v-if="!this.editMessageDto.fileItemUuid" icon tile @click="openFileUpload()"><v-icon color="primary">mdi-file-upload</v-icon></v-btn>
