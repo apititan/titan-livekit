@@ -125,31 +125,34 @@ services:
         max-size: "50m"
         max-file: "1"
 
-  keycloak-postgresql:
-    image: library/postgres:14.0
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: keycloak_db
-    ports:
-      - "5420:5432"
-    restart: unless-stopped
+#  keycloak-postgresql:
+#    image: library/postgres:14.0
+#    environment:
+#      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+#      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+#      POSTGRES_DB: keycloak_db
+#    ports:
+#      - "5420:5432"
+#    restart: unless-stopped
 
   keycloak:
-    image: jboss/keycloak:15.0.2
+    image: quay.io/keycloak/keycloak:17.0.0
     volumes:
       - ./docker/keycloak/realm-export.json:/opt/jboss/keycloak/imports/realm-export.json:ro,z
     environment:
-      DB_VENDOR: POSTGRES
-      DB_ADDR: keycloak-postgresql
-      DB_DATABASE: keycloak_db
-      DB_USER: ${POSTGRES_USER:-postgres}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      KEYCLOAK_USER: keycloak_admin
-      KEYCLOAK_PASSWORD: admin_password
+      KC_METRICS_ENABLED: "false"
+#      KC_DB: postgres
+#      KC_DB_URL: "jdbc:postgresql://keycloak-postgresql:5432/keycloak_db?connectTimeout=10&socketTimeout=40"
+#      KC_DB_USERNAME: ${POSTGRES_USER:-postgres}
+#      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      KEYCLOAK_ADMIN: keycloak_admin
+      KEYCLOAK_ADMIN_PASSWORD: admin_password
+      KC_HTTP_RELATIVE_PATH: "/auth"
+      KC_HOSTNAME: "127.0.0.1:8484"
       KEYCLOAK_IMPORT: /opt/jboss/keycloak/imports/realm-export.json
     ports:
       - "8484:8080"
+    entrypoint: ["/opt/keycloak/bin/kc.sh", "start-dev"]
 
 volumes:
   postgres_data:
