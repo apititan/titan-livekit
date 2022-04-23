@@ -250,6 +250,10 @@ Firefox [doesn't support simulcast for H264](https://bugzilla.mozilla.org/show_b
 
 Firefox [bug about layer order](https://bugzilla.mozilla.org/show_bug.cgi?id=1663368)
 
+# Install GStreamer
+```bash
+dnf install gstreamer1.x86_64
+```
 
 ## Interesting forks ion-sfu
 * https://github.com/edudip/ion-sfu/commits/master
