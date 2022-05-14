@@ -13,7 +13,9 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/fx"
+	"net/http"
 	"nkonev.name/chat/client"
 	"nkonev.name/chat/config"
 	"nkonev.name/chat/db"
@@ -78,28 +80,25 @@ func runCentrifuge(node *centrifuge.Node) {
 	Logger.Info("Centrifuge started.")
 }
 
-/*func configureOpencensusMiddleware() echo.MiddlewareFunc {
+func configureWriteHeaderMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(ctx echo.Context) (err error) {
-			handler := &ochttp.Handler{
-				Handler: http.HandlerFunc(
-					func(w http.ResponseWriter, r *http.Request) {
-						ctx.SetRequest(r)
-						ctx.SetResponse(echo.NewResponse(w, ctx.Echo()))
-						existsSpan := trace.FromContext(ctx.Request().Context())
-						if existsSpan != nil {
-							w.Header().Set(EXTERNAL_TRACE_ID_HEADER, existsSpan.SpanContext().TraceID.String())
-						}
-						err = next(ctx)
-					},
-				),
-				Propagation: &uberCompat.HTTPFormat{},
-			}
+			handler := http.HandlerFunc(
+				func(w http.ResponseWriter, r *http.Request) {
+					ctx.SetRequest(r)
+					ctx.SetResponse(echo.NewResponse(w, ctx.Echo()))
+					existsSpan := trace.SpanFromContext(ctx.Request().Context())
+					if existsSpan.SpanContext().HasSpanID() {
+						w.Header().Set(EXTERNAL_TRACE_ID_HEADER, existsSpan.SpanContext().TraceID().String())
+					}
+					err = next(ctx)
+				},
+			)
 			handler.ServeHTTP(ctx.Response(), ctx.Request())
 			return
 		}
 	}
-}*/
+}
 
 func configureOpentelemetryMiddleware(tp *sdktrace.TracerProvider) echo.MiddlewareFunc {
 	mw := otelecho.Middleware(CHAT_TRACE_RESOURCE, otelecho.WithTracerProvider(tp))
@@ -134,6 +133,7 @@ func configureEcho(
 
 	e.Pre(echo.MiddlewareFunc(staticMiddleware))
 	e.Use(configureOpentelemetryMiddleware(tp))
+	e.Use(configureWriteHeaderMiddleware())
 	e.Use(echo.MiddlewareFunc(authMiddleware))
 	accessLoggerConfig := middleware.LoggerConfig{
 		Output: Logger.Writer(),
