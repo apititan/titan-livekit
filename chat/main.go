@@ -27,7 +27,7 @@ import (
 )
 
 const EXTERNAL_TRACE_ID_HEADER = "trace-id"
-const CHAT_TRACE_RESOURCE = "chat"
+const TRACE_RESOURCE = "chat"
 
 func main() {
 	config.InitViper()
@@ -101,7 +101,7 @@ func configureWriteHeaderMiddleware() echo.MiddlewareFunc {
 }
 
 func configureOpentelemetryMiddleware(tp *sdktrace.TracerProvider) echo.MiddlewareFunc {
-	mw := otelecho.Middleware(CHAT_TRACE_RESOURCE, otelecho.WithTracerProvider(tp))
+	mw := otelecho.Middleware(TRACE_RESOURCE, otelecho.WithTracerProvider(tp))
 	return mw
 }
 
@@ -198,7 +198,7 @@ func configureTracer(lc fx.Lifecycle) (*sdktrace.TracerProvider, error) {
 	}
 	resources := resource.NewWithAttributes(
 		semconv.SchemaURL,
-		semconv.ServiceNameKey.String(CHAT_TRACE_RESOURCE),
+		semconv.ServiceNameKey.String(TRACE_RESOURCE),
 	)
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
