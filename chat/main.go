@@ -10,7 +10,9 @@ import (
 	jaegerPropagator "go.opentelemetry.io/contrib/propagators/jaeger"
 	"go.opentelemetry.io/otel"
 	jaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.10.0"
 	"go.uber.org/fx"
 	"nkonev.name/chat/client"
 	"nkonev.name/chat/config"
@@ -33,9 +35,14 @@ func initTracer() *sdktrace.TracerProvider {
 	if err != nil {
 		Logger.Fatal(err)
 	}
+	resources := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceNameKey.String("chat"),
+	)
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(resources),
 	)
 	otel.SetTracerProvider(tp)
 	jaeger := jaegerPropagator.Jaeger{}
