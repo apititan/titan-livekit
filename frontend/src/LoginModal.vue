@@ -16,6 +16,7 @@
                         @keyup.native.enter="loginWithUsername"
                     >
                         <v-text-field
+                                id="login-text"
                                 v-model="username"
                                 :rules="usernameRules"
                                 :label="$vuetify.lang.t('$vuetify.login')"
@@ -25,6 +26,7 @@
                         ></v-text-field>
 
                         <v-text-field
+                                id="password-text"
                                 v-model="password"
                                 :append-icon="showInputablePassword ? 'mdi-eye' : 'mdi-eye-off'"
                                 @click:append="showInputablePassword = !showInputablePassword"
@@ -47,6 +49,7 @@
                         </v-alert>
 
                         <v-btn
+                                id="login-btn"
                                 :disabled="!valid || disable"
                                 color="success"
                                 class="mr-2 mb-2"

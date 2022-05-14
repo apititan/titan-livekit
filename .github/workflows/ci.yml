@@ -18,20 +18,21 @@ jobs:
       - name: Cache local Maven repository
         uses: actions/cache@v2
         with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          path: | 
+            ~/.m2/repository
+            ~/.m2/wrapper
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml', '**/.mvn/wrapper/maven-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Start & wait docker-compose environment
         run: |
-          docker-compose up -d postgresql redis rabbitmq jaeger keycloak-postgresql
+          docker-compose up -d postgresql redis rabbitmq jaeger
           ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:35432 -- echo 'postgres is up'
           ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:36379 -- echo 'redis is up'
           ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:36672 -- echo 'rabbitmq is up'
           ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:6831 -- echo 'jaeger is up'
-          ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:5420 -- echo 'keycloak postgres is up'
-          docker-compose up -d keycloak
-          ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:8484 -- echo 'keycloak is up'
+          docker-compose -f docker-compose.keycloak.yml up -d keycloak
+          sleep 15 && ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:8484 -- echo 'keycloak is up'
       - name: Build with Maven
         run: |
           (cd aaa; ./mvnw clean package)
@@ -60,12 +61,12 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 16.13.0
-      - name: Cache Node.js modules
+      - name: Cache Node.js dependencies
         uses: actions/cache@v2
         with:
           path: |
             **/node_modules
-          key: ${{ runner.os }}-mycache-v4-${{ hashFiles('**/lockfiles') }}
+          key: ${{ runner.os }}-frontend-cache-v1-${{ hashFiles('**/package-lock.json') }}
       - name: Build with npm run
         run: |
           (cd frontend; npm install && npm run build)
@@ -97,8 +98,10 @@ jobs:
           go-version: 1.16.9
       - uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-chat-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Install software
@@ -131,8 +134,10 @@ jobs:
           go-version: 1.16.9
       - uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-storage-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Install software
@@ -164,8 +169,10 @@ jobs:
           go-version: 1.16.9
       - uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-video-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Build & test video
@@ -189,8 +196,10 @@ jobs:
           go-version: 1.16.9
       - uses: actions/cache@v2
         with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-video-proxy-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Build & test video-proxy
@@ -221,3 +230,94 @@ jobs:
         with:
           file_pattern: .drawio/exported/*.png
           commit_message: Convert drawio to png
+  integration-test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install software
+        run: |
+          mkdir -p ${HOME}/bin && curl https://raw.githubusercontent.com/vishnubob/wait-for-it/8ed92e8cab83cfed76ff012ed4a36cef74b28096/wait-for-it.sh > ${HOME}/bin/wait-for-it.sh && chmod +x ${HOME}/bin/wait-for-it.sh
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v1
+        with:
+          java-version: 17.0.1
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.m2/wrapper
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml', '**/.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 16.13.0
+      - name: Cache Playwright browsers and Node.js dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            **/node_modules
+            ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-browsers-v0-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Install Playwright Node.js dependencies
+        run: (cd integration-test; npm ci)
+      - name: Install Playwright browsers
+        run: (cd integration-test; npx playwright install)
+      - name: Cache frontend Node.js dependencies
+        uses: actions/cache@v2
+        with:
+          path: |
+            **/node_modules
+          key: ${{ runner.os }}-frontend-cache-v1-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16.9
+      - name: Cache go modules
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-integration-test-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Start and wait docker-compose
+        run: |
+          docker-compose up -d postgresql redis rabbitmq jaeger minio frontend traefik
+          ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:35432 -- echo 'postgres is up'
+          ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:36379 -- echo 'redis is up'
+          ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:36672 -- echo 'rabbitmq is up'
+          ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:16686 -- echo 'jaeger web ui is up'
+          ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:8082 -- echo 'frontend nginx is up'
+          ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:9000 -- echo 'minio is up'
+          ${HOME}/bin/wait-for-it.sh -t 30 127.0.0.1:8081 -- echo 'traefik is up'
+      - name: Build microservices
+        run: |
+          (cd aaa; ./mvnw -DskipTests clean package)
+          (cd frontend; npm install && npm run build)
+          (cd chat; make check-env download generate package-go)
+      - name: Run microservices
+        run: |
+          (cd aaa; ./run-oauth2-emu.sh & ./run-with-oauth2.sh &)
+          (cd chat; ./chat &)
+      - name: Wait for microservices
+        run: |
+          ${HOME}/bin/wait-for-it.sh -t 40 127.0.0.1:9080 -- echo 'oauth2 emulator controller is up'
+          ${HOME}/bin/wait-for-it.sh -t 40 127.0.0.1:8060 -- echo 'aaa is up'
+          ${HOME}/bin/wait-for-it.sh -t 40 127.0.0.1:1235 -- echo 'chat is up'
+      - name: Run your Playwright tests
+        run: (cd integration-test; npx playwright test)
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: playwright-results
+          path: integration-test/test-results

@@ -1,0 +1,20 @@
+# This file used for both developer and demo purposes.
+# It contains environment
+version: '3.7'
+
+services:
+  # https://habr.com/en/amp/post/552346/
+  keycloak:
+    # https://quay.io/repository/keycloak/keycloak
+    image: quay.io/keycloak/keycloak:18.0.0
+    volumes:
+      - ./docker/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro,z
+    # https://www.keycloak.org/server/containers
+    environment:
+      KEYCLOAK_ADMIN: keycloak_admin
+      KEYCLOAK_ADMIN_PASSWORD: admin_password
+    ports:
+      - "8484:8080"
+    # https://www.keycloak.org/server/importExport
+    command: [ "start-dev", "--import-realm" ]
+    # command: [ "start-dev" ]

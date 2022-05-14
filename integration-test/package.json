@@ -1,0 +1,19 @@
+{
+  "name": "it",
+  "version": "1.0.0",
+  "description": "Some text",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nkonev/videochat.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "homepage": "https://github.com/nkonev/videochat#readme",
+  "devDependencies":    {
+    "axios": "^0.21.1",
+    "@playwright/test": "^1.19.1"
+  }
+}

@@ -1,4 +1,15 @@
-logging.level.root: INFO
+
+logging:
+  level:
+    root: INFO
+    org.springframework.test.web.servlet.result: WARN
+    org.springframework.boot.test.context.SpringBootTestContextBootstrapper: WARN
+    org.springframework.test.context.transaction.TransactionContext: WARN
+    org.springframework.test.context.support.AbstractContextLoader: WARN
+    org.springframework.security: WARN
+    org.mockserver: WARN
+  pattern:
+    console: "%d{dd.MM.yyyy HH:mm:ss.SSS} %-5level @aaa [%thread] %logger{36}:%line %msg%n"
 
 custom.base-url: "http://localhost:${server.port}"
 
@@ -8,7 +19,7 @@ custom.base-url: "http://localhost:${server.port}"
 spring.mail:
   testConnection: false
   host: 127.0.0.1
-  port: 3025
+  port: 3125
   username: testEmailUsername 
   password: testEmailPassword 
   properties:
@@ -120,41 +131,3 @@ spring.ldap.embedded:
 custom.ldap.auth:
   enabled: true
   filter: "uid={0}"
-
-spring.security:
-  oauth2:
-    client:
-      registration:
-        vkontakte:
-          client-id: 6805077
-          client-secret: your-app-client-secret
-          authorization-grant-type: authorization_code
-          redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
-          client-authentication-method: post
-        facebook:
-          client-id: 1684113965162824
-          client-secret: your-app-client-secret
-          redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
-        google:
-          client-id: 987654321
-          client-secret: your-app-client-secret
-          redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
-        keycloak:
-          client-id: my_client
-          redirect-uri: "{baseUrl}/api/login/oauth2/code/{registrationId}"
-      provider:
-        vkontakte:
-          authorization-uri: http://127.0.0.1:10081/mock/vkontakte/authorize
-          token-uri: http://127.0.0.1:10081/mock/vkontakte/access_token
-          user-info-uri: http://127.0.0.1:10081/mock/vkontakte/method/users.get?v=5.92
-          user-info-authentication-method: form
-          user-name-attribute: response
-        facebook:
-          authorization-uri: http://127.0.0.1:10080/mock/facebook/dialog/oauth
-          token-uri: http://127.0.0.1:10080/mock/facebook/oauth/access_token
-          user-info-uri: http://127.0.0.1:10080/mock/facebook/me?fields=id,name,picture
-        google:
-          authorization-uri: http://127.0.0.1:10082/mock/google/o/oauth2/v2/auth
-          token-uri: http://127.0.0.1:10082/mock/google/oauth2/v4/token
-        keycloak:
-          issuer-uri: http://localhost:8484/auth/realms/my_realm

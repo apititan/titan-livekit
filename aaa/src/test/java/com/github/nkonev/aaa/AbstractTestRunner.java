@@ -7,8 +7,8 @@ package com.github.nkonev.aaa;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.nkonev.aaa.dto.SuccessfulLoginDTO;
 import com.github.nkonev.aaa.repository.redis.UserConfirmationTokenRepository;
-import com.github.nkonev.aaa.security.SecurityConfig;
 import com.github.nkonev.aaa.util.ContextPathHelper;
+import com.github.nkonev.oauth2emu.UserTestService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +22,7 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.servlet.server.AbstractServletWebServerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.redis.connection.DefaultStringRedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisServerCommands;
@@ -30,8 +31,6 @@ import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -49,16 +48,16 @@ import static com.github.nkonev.aaa.CommonTestConstants.*;
 import static com.github.nkonev.aaa.security.SecurityConfig.*;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.COOKIE;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(
         classes = {AaaApplication.class, AbstractTestRunner.UtConfig.class},
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
-        properties = {"spring.test.context.cache.maxSize=1"}
+        properties = {"spring.test.context.cache.maxSize=1",
+                "spring.config.location=classpath:/config/application.yml,classpath:/config/oauth2-basic.yml,classpath:/config/oauth2-keycloak.yml"
+        }
 )
+@Import(UserTestService.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public abstract class AbstractTestRunner {
 
@@ -75,14 +74,11 @@ public abstract class AbstractTestRunner {
     @Autowired
     protected UserConfirmationTokenRepository userConfirmationTokenRepository;
 
-    @Autowired
+    @Autowired(required = false)
     protected TestRestTemplate testRestTemplate;
 
     @Autowired
     protected RestTemplate restTemplate;
-
-    @Value("${local.management.port}")
-    protected int mgmtPort;
 
     @Value("${custom.base-url}")
     protected String urlPrefix;

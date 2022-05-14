@@ -13,3 +13,7 @@ build
 git.json
 /video/video
 /video-proxy/video-proxy
+test-results/
+playwright-report/
+__debug_bin
+.vscode/
