@@ -25,44 +25,15 @@ import (
 )
 
 const EXTERNAL_TRACE_ID_HEADER = "trace-id"
-
-func initTracer() *sdktrace.TracerProvider {
-	endpoint := jaegerExporter.WithAgentEndpoint(
-		jaegerExporter.WithAgentHost(viper.GetString("jaeger.host")),
-		jaegerExporter.WithAgentPort(viper.GetString("jaeger.port")),
-	)
-	exporter, err := jaegerExporter.New(endpoint)
-	if err != nil {
-		Logger.Fatal(err)
-	}
-	resources := resource.NewWithAttributes(
-		semconv.SchemaURL,
-		semconv.ServiceNameKey.String("chat"),
-	)
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithBatcher(exporter),
-		sdktrace.WithResource(resources),
-	)
-	otel.SetTracerProvider(tp)
-	jaeger := jaegerPropagator.Jaeger{}
-	// register jaeger propagator
-	otel.SetTextMapPropagator(jaeger)
-	return tp
-}
+const CHAT_TRACE_RESOURCE = "chat"
 
 func main() {
 	config.InitViper()
-	tp := initTracer()
-	defer func() {
-		if err := tp.Shutdown(context.Background()); err != nil {
-			Logger.Printf("Error shutting down tracer provider: %v", err)
-		}
-	}()
 
 	app := fx.New(
 		fx.Logger(Logger),
 		fx.Provide(
+			configureTracer,
 			client.NewRestClient,
 			handlers.ConfigureCentrifuge,
 			handlers.CreateSanitizer,
@@ -84,7 +55,6 @@ func main() {
 			listener.CreateVideoQueue,
 		),
 		fx.Invoke(
-			// initJaeger,
 			runMigrations,
 			runCentrifuge,
 			runEcho,
@@ -131,6 +101,11 @@ func runCentrifuge(node *centrifuge.Node) {
 	}
 }*/
 
+func configureOpentelemetryMiddleware(tp *sdktrace.TracerProvider) echo.MiddlewareFunc {
+	mw := otelecho.Middleware(CHAT_TRACE_RESOURCE, otelecho.WithTracerProvider(tp))
+	return mw
+}
+
 func createCustomHTTPErrorHandler(e *echo.Echo) func(err error, c echo.Context) {
 	originalHandler := e.DefaultHTTPErrorHandler
 	return func(err error, c echo.Context) {
@@ -147,6 +122,7 @@ func configureEcho(
 	ch *handlers.ChatHandler,
 	mc *handlers.MessageHandler,
 	vh *handlers.VideoHandler,
+	tp *sdktrace.TracerProvider,
 ) *echo.Echo {
 
 	bodyLimit := viper.GetString("server.body.limit")
@@ -157,8 +133,7 @@ func configureEcho(
 	e.HTTPErrorHandler = createCustomHTTPErrorHandler(e)
 
 	e.Pre(echo.MiddlewareFunc(staticMiddleware))
-	//e.Use(configureOpencensusMiddleware())
-	e.Use(otelecho.Middleware("chat"))
+	e.Use(configureOpentelemetryMiddleware(tp))
 	e.Use(echo.MiddlewareFunc(authMiddleware))
 	accessLoggerConfig := middleware.LoggerConfig{
 		Output: Logger.Writer(),
@@ -211,30 +186,41 @@ func configureEcho(
 	return e
 }
 
-/*func initJaeger(lc fx.Lifecycle) error {
-	exporter, err := jaeger.NewExporter(jaeger.Options{
-		AgentEndpoint: viper.GetString("jaeger.endpoint"),
-		Process: jaeger.Process{
-			ServiceName: "chat",
-		},
-	})
+func configureTracer(lc fx.Lifecycle) (*sdktrace.TracerProvider, error) {
+	Logger.Infof("Configuring Jaeger tracing")
+	endpoint := jaegerExporter.WithAgentEndpoint(
+		jaegerExporter.WithAgentHost(viper.GetString("jaeger.host")),
+		jaegerExporter.WithAgentPort(viper.GetString("jaeger.port")),
+	)
+	exporter, err := jaegerExporter.New(endpoint)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	trace.RegisterExporter(exporter)
-	trace.ApplyConfig(trace.Config{
-		DefaultSampler: trace.AlwaysSample(),
-	})
+	resources := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceNameKey.String(CHAT_TRACE_RESOURCE),
+	)
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithBatcher(exporter),
+		sdktrace.WithResource(resources),
+	)
+	otel.SetTracerProvider(tp)
+	jaeger := jaegerPropagator.Jaeger{}
+	// register jaeger propagator
+	otel.SetTextMapPropagator(jaeger)
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
 			Logger.Infof("Stopping tracer")
-			exporter.Flush()
-			trace.UnregisterExporter(exporter)
+			if err := tp.Shutdown(context.Background()); err != nil {
+				Logger.Printf("Error shutting down tracer provider: %v", err)
+			}
 			return nil
 		},
 	})
-	return nil
-}*/
+
+	return tp, nil
+}
 
 func configureMigrations() db.MigrationsConfig {
 	return db.MigrationsConfig{}
