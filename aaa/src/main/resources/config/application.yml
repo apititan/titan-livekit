@@ -43,7 +43,8 @@ spring:
 
   sleuth:
     propagation:
-      type: JAEGER
+      type:
+        - JAEGER
 
     otel:
       exporter:
@@ -54,18 +55,8 @@ spring:
           schedule-delay: 0
           max-export-batch-size: 1
           max-queue-size: 1
-    sampler:
-      probability: 1.0
-
-#opentracing:
-#  jaeger:
-#    udp-sender:
-#      host: localhost
-#      port: 6831
-#    enable128-bit-traces: true
-#    probabilistic-sampler:
-#      sampling-rate: 1.0
-#    log-spans: false
+      config:
+        trace-id-ratio-based: 1.0
 
 
 
