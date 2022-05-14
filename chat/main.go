@@ -2,16 +2,16 @@ package main
 
 import (
 	"context"
-	"contrib.go.opencensus.io/exporter/jaeger"
 	"github.com/centrifugal/centrifuge"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	uberCompat "github.com/nkonev/jaeger-uber-propagation-compat/propagation"
 	"github.com/spf13/viper"
-	"go.opencensus.io/plugin/ochttp"
-	"go.opencensus.io/trace"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho"
+	jaegerPropagator "go.opentelemetry.io/contrib/propagators/jaeger"
+	"go.opentelemetry.io/otel"
+	jaegerExporter "go.opentelemetry.io/otel/exporters/jaeger"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.uber.org/fx"
-	"net/http"
 	"nkonev.name/chat/client"
 	"nkonev.name/chat/config"
 	"nkonev.name/chat/db"
@@ -24,8 +24,34 @@ import (
 
 const EXTERNAL_TRACE_ID_HEADER = "trace-id"
 
+func initTracer() *sdktrace.TracerProvider {
+	endpoint := jaegerExporter.WithAgentEndpoint(
+		jaegerExporter.WithAgentHost(viper.GetString("jaeger.host")),
+		jaegerExporter.WithAgentPort(viper.GetString("jaeger.port")),
+	)
+	exporter, err := jaegerExporter.New(endpoint)
+	if err != nil {
+		Logger.Fatal(err)
+	}
+	tp := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithBatcher(exporter),
+	)
+	otel.SetTracerProvider(tp)
+	jaeger := jaegerPropagator.Jaeger{}
+	// register jaeger propagator
+	otel.SetTextMapPropagator(jaeger)
+	return tp
+}
+
 func main() {
 	config.InitViper()
+	tp := initTracer()
+	defer func() {
+		if err := tp.Shutdown(context.Background()); err != nil {
+			Logger.Printf("Error shutting down tracer provider: %v", err)
+		}
+	}()
 
 	app := fx.New(
 		fx.Logger(Logger),
@@ -51,7 +77,7 @@ func main() {
 			listener.CreateVideoQueue,
 		),
 		fx.Invoke(
-			initJaeger,
+			// initJaeger,
 			runMigrations,
 			runCentrifuge,
 			runEcho,
@@ -75,7 +101,7 @@ func runCentrifuge(node *centrifuge.Node) {
 	Logger.Info("Centrifuge started.")
 }
 
-func configureOpencensusMiddleware() echo.MiddlewareFunc {
+/*func configureOpencensusMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(ctx echo.Context) (err error) {
 			handler := &ochttp.Handler{
@@ -96,7 +122,7 @@ func configureOpencensusMiddleware() echo.MiddlewareFunc {
 			return
 		}
 	}
-}
+}*/
 
 func createCustomHTTPErrorHandler(e *echo.Echo) func(err error, c echo.Context) {
 	originalHandler := e.DefaultHTTPErrorHandler
@@ -124,7 +150,8 @@ func configureEcho(
 	e.HTTPErrorHandler = createCustomHTTPErrorHandler(e)
 
 	e.Pre(echo.MiddlewareFunc(staticMiddleware))
-	e.Use(configureOpencensusMiddleware())
+	//e.Use(configureOpencensusMiddleware())
+	e.Use(otelecho.Middleware("chat"))
 	e.Use(echo.MiddlewareFunc(authMiddleware))
 	accessLoggerConfig := middleware.LoggerConfig{
 		Output: Logger.Writer(),
@@ -177,7 +204,7 @@ func configureEcho(
 	return e
 }
 
-func initJaeger(lc fx.Lifecycle) error {
+/*func initJaeger(lc fx.Lifecycle) error {
 	exporter, err := jaeger.NewExporter(jaeger.Options{
 		AgentEndpoint: viper.GetString("jaeger.endpoint"),
 		Process: jaeger.Process{
@@ -200,7 +227,7 @@ func initJaeger(lc fx.Lifecycle) error {
 		},
 	})
 	return nil
-}
+}*/
 
 func configureMigrations() db.MigrationsConfig {
 	return db.MigrationsConfig{}
