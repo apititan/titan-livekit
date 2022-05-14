@@ -168,7 +168,7 @@ func initJaeger(lc fx.Lifecycle) error {
 	exporter, err := jaeger.NewExporter(jaeger.Options{
 		AgentEndpoint: viper.GetString("jaeger.endpoint"),
 		Process: jaeger.Process{
-			ServiceName: "chat",
+			ServiceName: "storage",
 		},
 	})
 	if err != nil {
