@@ -42,6 +42,9 @@ spring:
 
 
   sleuth:
+    web:
+      tomcat:
+        enabled: false
     propagation:
       type:
         - JAEGER
