@@ -398,9 +398,9 @@ export default {
                     const publication = await this.room.localParticipant.publishTrack(track, {
                         name: "track_" + track.kind + "__screen_" + isScreen + "_" + this.getNewId(),
                     });
-                    if (track.kind == 'audio' && defaultAudioMute) {
-                        await publication.mute();
-                    }
+                    // if (track.kind == 'audio' && defaultAudioMute) {
+                    //     await publication.mute();
+                    // }
                     console.info("Published track sid=", track.sid, " kind=", track.kind);
                 }
             } catch (e) {

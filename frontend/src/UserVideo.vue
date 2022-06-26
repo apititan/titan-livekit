@@ -49,11 +49,9 @@ export default {
     methods: {
         setAudioStream(micPub, micEnabled) {
             console.info("Setting source audio for videoRef=", this.$refs.videoRef, " track=", micPub, " audio tag id=", this.id, ", enabled=", micEnabled);
-            // we don't need to hear own audio
-            const realMicEnabled = micEnabled && !this.localVideoProperties && defaultAudioMute;
-            this.setDisplayAudioMute(!realMicEnabled);
+            this.setDisplayAudioMute(!micEnabled);
             this.audioPublication = micPub;
-            if (realMicEnabled) {
+            if (micEnabled && !this.localVideoProperties) { // we don't need to hear own audio
                 micPub?.audioTrack?.attach(this.$refs.videoRef);
             }
         },
