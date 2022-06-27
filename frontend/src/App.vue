@@ -76,37 +76,11 @@
                 app
                 id="myAppBar"
                 :clipped-left="true"
+                dense
         >
             <v-app-bar-nav-icon @click="toggleLeftNavigation"></v-app-bar-nav-icon>
-            <v-btn v-if="showHangButton && $vuetify.breakpoint.smAndUp" icon @click="addScreenSource()"><v-icon>mdi-monitor-screenshot</v-icon></v-btn>
-            <v-btn v-if="showHangButton" icon @click="addVideoSource()"><v-icon>mdi-video-plus</v-icon></v-btn>
-            <v-badge
-                v-if="showCallButton || showHangButton"
-                :content="videoChatUsersCount"
-                :value="videoChatUsersCount"
-                color="green"
-                overlap
-                offset-y="1.8em"
-            >
-                <v-btn v-if="showCallButton" icon @click="createCall">
-                    <v-icon color="green">mdi-phone</v-icon>
-                </v-btn>
-                <v-btn v-if="showHangButton" icon @click="stopCall">
-                    <v-icon color="red">mdi-phone</v-icon>
-                </v-btn>
-            </v-badge>
 
-            <v-spacer></v-spacer>
-            <v-btn class="ma-2" text color="white" @click="onInfoClicked" :disabled="!chatId">
-                <div class="d-flex flex-column">
-                    <div style="text-transform: initial">{{title}}</div>
-                    <div v-if="chatUsersCount" style="font-size: 0.8em !important; letter-spacing: initial; text-transform: initial; opacity: 50%">
-                        {{ chatUsersCount }} {{ $vuetify.lang.t('$vuetify.participants') }}</div>
-                </div>
-            </v-btn>
-            <v-spacer></v-spacer>
-
-            <v-card light v-if="isShowSearch">
+            <v-card light v-if="isShowSearch" class="ml-2">
                 <v-text-field prepend-icon="mdi-magnify" hide-details single-line v-model="searchString" clearable clear-icon="mdi-close-circle"></v-text-field>
             </v-card>
 
@@ -116,6 +90,37 @@
                 </template>
                 <span>{{ $vuetify.lang.t('$vuetify.websocket_not_connected') }}</span>
             </v-tooltip>
+
+            <template v-slot:extension>
+                <v-btn v-if="!$vuetify.breakpoint.smAndUp || true" icon @click="openMessageDialog()"><v-icon>mdi-message-plus</v-icon></v-btn>
+                <v-btn v-if="showHangButton && $vuetify.breakpoint.smAndUp" icon @click="addScreenSource()"><v-icon>mdi-monitor-screenshot</v-icon></v-btn>
+                <v-btn v-if="showHangButton" icon @click="addVideoSource()"><v-icon>mdi-video-plus</v-icon></v-btn>
+                <v-badge
+                    v-if="showCallButton || showHangButton"
+                    :content="videoChatUsersCount"
+                    :value="videoChatUsersCount"
+                    color="green"
+                    overlap
+                    offset-y="1.8em"
+                >
+                    <v-btn v-if="showCallButton" icon @click="createCall">
+                        <v-icon color="green">mdi-phone</v-icon>
+                    </v-btn>
+                    <v-btn v-if="showHangButton" icon @click="stopCall">
+                        <v-icon color="red">mdi-phone</v-icon>
+                    </v-btn>
+                </v-badge>
+
+                <v-spacer></v-spacer>
+                <v-btn class="ma-2" text color="white" @click="onInfoClicked" :disabled="!chatId">
+                    <div class="d-flex flex-column">
+                        <div style="text-transform: initial">{{title}}</div>
+                        <div v-if="chatUsersCount" style="font-size: 0.8em !important; letter-spacing: initial; text-transform: initial; opacity: 50%">
+                            {{ chatUsersCount }} {{ $vuetify.lang.t('$vuetify.participants') }}</div>
+                    </div>
+                </v-btn>
+                <v-spacer></v-spacer>
+            </template>
         </v-app-bar>
 
 
@@ -204,7 +209,7 @@
         OPEN_VIDEO_SETTINGS,
         OPEN_LANGUAGE_MODAL,
         ADD_VIDEO_SOURCE_DIALOG,
-        ADD_SCREEN_SOURCE, SEARCH_STRING_CHANGED,
+        ADD_SCREEN_SOURCE, SEARCH_STRING_CHANGED, OPEN_MESSAGE_DIALOG,
     } from "./bus";
     import ChatEdit from "./ChatEdit";
     import {chat_name, profile_self_name, chat_list_name, videochat_name} from "./routes";
@@ -314,6 +319,9 @@
             },
             addScreenSource() {
                 bus.$emit(ADD_SCREEN_SOURCE);
+            },
+            openMessageDialog() {
+                bus.$emit(OPEN_MESSAGE_DIALOG);
             },
             onVideoCallInvited(data) {
                 this.invitedVideoChatId = data.chatId;
