@@ -139,6 +139,10 @@
                             this.onFileItemUuid({fileItemUuid: this.editMessageDto.fileItemUuid, count: response.data.count})
                         });
                 }
+                this.$nextTick(()=>{
+                    this.$refs.tipTapRef.$data.editor.commands.focus('end')
+                    //this.$refs.tipTapRef.$data.editor.chain().focus().setTextSelection(10).run()
+                })
             },
             notifyAboutBroadcast(clear) {
                 if (clear) {
