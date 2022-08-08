@@ -81,6 +81,14 @@
                                 </v-badge>
                                 <v-list-item-content class="ml-4">
                                     <v-list-item-title>{{item.login}}<template v-if="item.id == currentUser.id"> {{ $vuetify.lang.t('$vuetify.you_brackets') }}</template></v-list-item-title>
+                                    <v-progress-linear
+                                        v-if="item.callingTo"
+                                        color="success"
+                                        buffer-value="0"
+                                        indeterminate
+                                        rounded
+                                        reverse
+                                    ></v-progress-linear>
                                 </v-list-item-content>
                                 <v-tooltip bottom v-if="item.admin || dto.canChangeChatAdmins">
                                     <template v-slot:activator="{ on, attrs }">
@@ -126,7 +134,7 @@
                                 </v-tooltip>
                                 <v-tooltip bottom v-if="item.id != currentUser.id">
                                     <template v-slot:activator="{ on, attrs }">
-                                        <v-btn v-bind="attrs" v-on="on" icon @click="inviteToVideoCall(item.id)"><v-icon color="success">mdi-phone</v-icon></v-btn>
+                                        <v-btn v-bind="attrs" v-on="on" icon @click="inviteToVideoCall(item.id)"><v-icon :class="{'call-blink': item.callingTo}" color="success">mdi-phone</v-icon></v-btn>
                                     </template>
                                     <span>{{ $vuetify.lang.t('$vuetify.call') }}</span>
                                 </v-tooltip>
@@ -217,6 +225,7 @@
                     tmp.participants.forEach(item => {
                         item.adminLoading = false;
                         item.online = false;
+                        item.callingTo = true;
                     });
                 }
             },
@@ -423,3 +432,15 @@
         },
     }
 </script>
+
+<style lang="stylus" scoped>
+
+    .call-blink {
+        animation: blink 0.5s infinite;
+    }
+
+    @keyframes blink {
+        50% { opacity: 10% }
+    }
+
+</style>
