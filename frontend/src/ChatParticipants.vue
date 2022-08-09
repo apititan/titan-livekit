@@ -80,15 +80,21 @@
                                     </router-link>
                                 </v-badge>
                                 <v-list-item-content class="ml-4">
-                                    <v-list-item-title>{{item.login}}<template v-if="item.id == currentUser.id"> {{ $vuetify.lang.t('$vuetify.you_brackets') }}</template></v-list-item-title>
-                                    <v-progress-linear
-                                        v-if="item.callingTo"
-                                        color="success"
-                                        buffer-value="0"
-                                        indeterminate
-                                        rounded
-                                        reverse
-                                    ></v-progress-linear>
+                                    <v-row no-gutters align="center">
+                                        <v-col>
+                                            <v-list-item-title>{{item.login}}<template v-if="item.id == currentUser.id"> {{ $vuetify.lang.t('$vuetify.you_brackets') }}</template></v-list-item-title>
+                                        </v-col>
+                                        <v-col>
+                                            <v-progress-linear
+                                                v-if="item.callingTo"
+                                                color="success"
+                                                buffer-value="0"
+                                                indeterminate
+                                                rounded
+                                                reverse
+                                            ></v-progress-linear>
+                                        </v-col>
+                                    </v-row>
                                 </v-list-item-content>
                                 <v-tooltip bottom v-if="item.admin || dto.canChangeChatAdmins">
                                     <template v-slot:activator="{ on, attrs }">
