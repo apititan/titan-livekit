@@ -86,7 +86,7 @@ func getNewMessagesNotificationMessage(dbs db.DB, userId int64) ([]byte, error) 
 func ConfigureCentrifuge(lc fx.Lifecycle, dbs db.DB) *centrifuge.Node {
 	// We use default config here as starting point. Default config contains
 	// reasonable values for available options.
-	cfg := centrifuge.DefaultConfig
+	cfg := centrifuge.Config{}
 
 	// Centrifuge library exposes logs with different log level. In your app
 	// you can set special function to handle these log entries in a way you want.
@@ -184,9 +184,10 @@ func ConfigureCentrifuge(lc fx.Lifecycle, dbs db.DB) *centrifuge.Node {
 			Logger.Printf("user %s subscribes on %s", client.UserID(), e.Channel)
 			cb(centrifuge.SubscribeReply{
 				Options: centrifuge.SubscribeOptions{
-					Presence:  true,
-					JoinLeave: true,
-					Recover:   true,
+					EmitPresence:   true,
+					EmitJoinLeave:  true,
+					PushJoinLeave:  true,
+					EnableRecovery: true,
 				},
 			}, nil)
 		})
@@ -289,7 +290,12 @@ func ConfigureCentrifuge(lc fx.Lifecycle, dbs db.DB) *centrifuge.Node {
 			Data: []byte(`{}`),
 			// Subscribe to personal several server-side channel.
 			Subscriptions: map[string]centrifuge.SubscribeOptions{
-				utils.PersonalChannelPrefix + cred.UserID: {Recover: true, Presence: true, JoinLeave: true},
+				utils.PersonalChannelPrefix + cred.UserID: {
+					EnableRecovery: true,
+					EmitPresence:   true,
+					EmitJoinLeave:  true,
+					PushJoinLeave:  true,
+				},
 			},
 		}, nil
 	})

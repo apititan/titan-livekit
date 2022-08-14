@@ -40,7 +40,7 @@
         props: ['item', 'chatId', 'highlight'],
         methods: {
             onMessageClick(dto) {
-                this.centrifuge.namedRPC(TYPE_MESSAGE_READ, { chatId: parseInt(this.chatId), messageId: dto.id}).then(value => {
+                this.centrifuge.rpc(TYPE_MESSAGE_READ, { chatId: parseInt(this.chatId), messageId: dto.id}).then(value => {
                     if (getData(value)) {
                         const currentNewMessages = getData(value).allUnreadMessages > 0;
                         setIcon(currentNewMessages)

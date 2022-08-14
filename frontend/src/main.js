@@ -94,7 +94,7 @@ vm = new Vue({
     bus.$off(LOGGED_OUT, this.disconnectCentrifuge);
   },
   mounted(){
-    this.centrifuge.on('publish', (ctx)=>{
+    this.centrifuge.on('publication', (ctx)=>{
       console.debug("Got personal message", ctx);
       if (getData(ctx).type === 'chat_created') {
         const d = getProperData(ctx);

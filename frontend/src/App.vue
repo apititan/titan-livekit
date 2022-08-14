@@ -305,7 +305,7 @@
                     this.showWebsocketRestored = true;
                 }
                 if (connected) {
-                    this.centrifuge.namedRPC("check_for_new_messages").then(value => {
+                    this.centrifuge.rpc("check_for_new_messages").then(value => {
                         console.debug("New messages response", value);
                         if (getData(value)) {
                             const currentNewMessages = getData(value).allUnreadMessages > 0;

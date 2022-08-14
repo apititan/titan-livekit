@@ -497,7 +497,8 @@
             },
             subscribe() {
                 const channel = "chatMessages" + this.chatId;
-                this.chatMessagesSubscription = this.centrifuge.subscribe(channel, (message) => {
+                this.chatMessagesSubscription = this.centrifuge.newSubscription(channel);
+                this.chatMessagesSubscription.on('publication', (message) => {
                     // actually it's used for tell server about presence of this client.
                     // also will be used as a global notification, so we just log it
                     const data = getData(message);
