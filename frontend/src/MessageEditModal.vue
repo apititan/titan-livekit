@@ -16,7 +16,7 @@
                 <v-toolbar-title>Editing message</v-toolbar-title>
             </v-toolbar>
             <div class="message-edit-dialog">
-                <MessageEdit :chatId="chatId" full-height="true"/>
+                <MessageEdit :chatId="chatId"/>
             </div>
         </v-card>
     </v-dialog>

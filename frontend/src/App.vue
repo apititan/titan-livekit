@@ -165,7 +165,7 @@
                 <FileTextEditModal/>
                 <LanguageModal/>
                 <VideoAddNewSource/>
-                <MessageEditModal v-if="isMobile()"/>
+                <MessageEditModal/>
                 <MessageEditLinkModal/>
                 <MessageEditColorModal/>
 

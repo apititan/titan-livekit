@@ -62,11 +62,7 @@
             },
             editMessage(dto){
                 const editMessageDto = {id: dto.id, text: dto.text, fileItemUuid: dto.fileItemUuid};
-                if (!this.isMobile()) {
-                    bus.$emit(SET_EDIT_MESSAGE, editMessageDto);
-                } else {
-                    bus.$emit(OPEN_EDIT_MESSAGE, editMessageDto);
-                }
+                bus.$emit(OPEN_EDIT_MESSAGE, editMessageDto);
             },
             getOwner(item) {
                 return item.owner.login

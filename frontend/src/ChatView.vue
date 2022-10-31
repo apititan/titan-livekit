@@ -19,11 +19,8 @@
                     </infinite-loading>
                 </div>
             </pane>
-            <pane max-size="70" min-size="12" v-bind:size="editSize" v-if="!isMobile()">
-                <MessageEdit :chatId="chatId"/>
-            </pane>
         </splitpanes>
-        <v-btn v-if="isMobile()"
+        <v-btn
             color="primary"
             fab
             dark
@@ -80,15 +77,9 @@
     import queryMixin from "@/queryMixin";
     import graphqlSubscriptionMixin from "./graphqlSubscriptionMixin"
 
-
-    const defaultDesktopWithoutVideo = [80, 20];
-    const defaultDesktopWithVideo = [30, 50, 20];
-
     const defaultMobileWithoutVideo = [100];
     const defaultMobileWithVideo = [40, 60];
 
-    const KEY_DESKTOP_WITH_VIDEO_PANELS = 'desktopWithVideo';
-    const KEY_DESKTOP_WITHOUT_VIDEO_PANELS = 'desktopWithoutVideo'
     const KEY_MOBILE_WITH_VIDEO_PANELS = 'mobileWithVideo';
     const KEY_MOBILE_WITHOUT_VIDEO_PANELS = 'mobileWithoutVideo'
 
@@ -146,13 +137,9 @@
             videoSize() {
                 let defaultWithVideo;
                 let defaultWithoutVideo;
-                if (!this.isMobile()) {
-                    defaultWithVideo = defaultDesktopWithVideo;
-                    defaultWithoutVideo = defaultDesktopWithoutVideo;
-                } else {
-                    defaultWithVideo = defaultMobileWithVideo;
-                    defaultWithoutVideo = defaultMobileWithoutVideo;
-                }
+                defaultWithVideo = defaultMobileWithVideo;
+                defaultWithoutVideo = defaultMobileWithoutVideo;
+
 
                 let stored = this.getStored();
                 if (!stored) {
@@ -169,13 +156,9 @@
             messagesSize() {
                 let defaultWithVideo;
                 let defaultWithoutVideo;
-                if (!this.isMobile()) {
-                    defaultWithVideo = defaultDesktopWithVideo;
-                    defaultWithoutVideo = defaultDesktopWithoutVideo;
-                } else {
-                    defaultWithVideo = defaultMobileWithVideo;
-                    defaultWithoutVideo = defaultMobileWithoutVideo;
-                }
+                defaultWithVideo = defaultMobileWithVideo;
+                defaultWithoutVideo = defaultMobileWithoutVideo;
+
 
                 let stored = this.getStored();
                 if (!stored) {
@@ -188,20 +171,6 @@
                     return stored[0]
                 }
             },
-            editSize() {
-                // not need here because it's not used in mobile
-
-                let stored = this.getStored();
-                if (!stored) {
-                    this.saveToStored(this.isAllowedVideo() ? defaultDesktopWithVideo : defaultDesktopWithoutVideo)
-                    stored = this.getStored();
-                }
-                if (this.isAllowedVideo()) {
-                    return stored[2]
-                } else {
-                    return stored[1]
-                }
-            }
         },
         methods: {
             // not working until you will change this.items list
@@ -243,13 +212,9 @@
             getStored() {
                 let keyWithVideo;
                 let keyWithoutVideo;
-                if (!this.isMobile()) {
-                    keyWithVideo = KEY_DESKTOP_WITH_VIDEO_PANELS;
-                    keyWithoutVideo = KEY_DESKTOP_WITHOUT_VIDEO_PANELS;
-                } else {
-                    keyWithVideo = KEY_MOBILE_WITH_VIDEO_PANELS;
-                    keyWithoutVideo = KEY_MOBILE_WITHOUT_VIDEO_PANELS;
-                }
+                keyWithVideo = KEY_MOBILE_WITH_VIDEO_PANELS;
+                keyWithoutVideo = KEY_MOBILE_WITHOUT_VIDEO_PANELS;
+
 
                 const mbItem = this.isAllowedVideo() ? localStorage.getItem(keyWithVideo) : localStorage.getItem(keyWithoutVideo);
                 if (!mbItem) {
@@ -261,13 +226,8 @@
             saveToStored(arr) {
                 let keyWithVideo;
                 let keyWithoutVideo;
-                if (!this.isMobile()) {
-                    keyWithVideo = KEY_DESKTOP_WITH_VIDEO_PANELS;
-                    keyWithoutVideo = KEY_DESKTOP_WITHOUT_VIDEO_PANELS;
-                } else {
-                    keyWithVideo = KEY_MOBILE_WITH_VIDEO_PANELS;
-                    keyWithoutVideo = KEY_MOBILE_WITHOUT_VIDEO_PANELS;
-                }
+                keyWithVideo = KEY_MOBILE_WITH_VIDEO_PANELS;
+                keyWithoutVideo = KEY_MOBILE_WITHOUT_VIDEO_PANELS;
 
                 if (this.isAllowedVideo()) {
                     localStorage.setItem(keyWithVideo, JSON.stringify(arr));

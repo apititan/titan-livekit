@@ -1,5 +1,5 @@
 <template>
-    <v-container id="sendButtonContainer" class="py-0 px-1 pb-1 d-flex flex-column" fluid :style="{height: messageEditHeight}"
+    <v-container id="sendButtonContainer" class="py-0 px-1 pb-1 d-flex flex-column" fluid
                  @keyup.ctrl.enter="sendMessageToChat"
                  @keyup.esc="resetInput"
     >
@@ -273,9 +273,6 @@
                 currentUser: GET_USER,
                 canBroadcast: GET_CAN_BROADCAST_TEXT_MESSAGE,
             }),
-            messageEditHeight() {
-                return this.fullHeight ? 'calc(100vh - 56px - 48px)' : '100%'
-            }
         },
         mounted() {
             bus.$on(SET_EDIT_MESSAGE, this.onSetMessage);
@@ -323,6 +320,7 @@ $borderColor = rgba(0, 0, 0, 0.2)
 
 #sendButtonContainer {
     min-height 25%
+    height calc(100vh - 48px)
 }
 
 #custom-toolbar {
